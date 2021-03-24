@@ -270,6 +270,14 @@ StringRef MCSymbolRefExpr::getVariantKindName(VariantKind Kind) {
   case VK_AVR_DIFF16: return "diff16";
   case VK_AVR_DIFF32: return "diff32";
   case VK_AVR_PM: return "pm";
+  case VK_OPEN8_NONE: return "none";
+  case VK_OPEN8_LO8: return "lo8";
+  case VK_OPEN8_HI8: return "hi8";
+  case VK_OPEN8_HLO8: return "hlo8";
+  case VK_OPEN8_DIFF8: return "diff8";
+  case VK_OPEN8_DIFF16: return "diff16";
+  case VK_OPEN8_DIFF32: return "diff32";
+  case VK_OPEN8_PM: return "pm";
   case VK_PPC_LO: return "l";
   case VK_PPC_HI: return "h";
   case VK_PPC_HA: return "ha";

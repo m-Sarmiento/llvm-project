@@ -492,6 +492,34 @@ enum {
 #include "ELFRelocs/AVR.def"
 };
 
+// OPEN8 specific e_flags
+// TODO: remove
+enum : unsigned {
+  EF_OPEN8_ARCH_OPEN81 = 1,
+  EF_OPEN8_ARCH_OPEN82 = 2,
+  EF_OPEN8_ARCH_OPEN825 = 25,
+  EF_OPEN8_ARCH_OPEN83 = 3,
+  EF_OPEN8_ARCH_OPEN831 = 31,
+  EF_OPEN8_ARCH_OPEN835 = 35,
+  EF_OPEN8_ARCH_OPEN84 = 4,
+  EF_OPEN8_ARCH_OPEN85 = 5,
+  EF_OPEN8_ARCH_OPEN851 = 51,
+  EF_OPEN8_ARCH_OPEN86 = 6,
+  EF_OPEN8_ARCH_OPEN8TINY = 100,
+  EF_OPEN8_ARCH_XMEGA1 = 101,
+  EF_OPEN8_ARCH_XMEGA2 = 102,
+  EF_OPEN8_ARCH_XMEGA3 = 103,
+  EF_OPEN8_ARCH_XMEGA4 = 104,
+  EF_OPEN8_ARCH_XMEGA5 = 105,
+  EF_OPEN8_ARCH_XMEGA6 = 106,
+  EF_OPEN8_ARCH_XMEGA7 = 107
+};
+
+// ELF Relocation types for OPEN8
+enum {
+#include "ELFRelocs/OPEN8.def"
+};
+
 // Mips Specific e_flags
 enum : unsigned {
   EF_MIPS_NOREORDER = 0x00000001, // Don't reorder instructions

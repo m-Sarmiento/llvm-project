@@ -246,6 +246,17 @@ namespace CallingConv {
 
     /// M68k_INTR - Calling convention used for M68k interrupt routines.
     M68k_INTR = 101,
+    
+    //TODO: remove
+    /// Used for OPEN8 interrupt routines.
+    OPEN8_INTR = 84,
+
+    /// Calling convention used for OPEN8 signal routines.
+    OPEN8_SIGNAL = 85,
+
+    /// Calling convention used for special OPEN8 rtlib functions
+    /// which have an "optimized" convention to preserve registers.
+    OPEN8_BUILTIN = 86,
 
     /// The highest possible calling convention ID. Must be some 2^k - 1.
     MaxID = 1023
