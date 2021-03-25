@@ -46,7 +46,7 @@ OPEN8TargetLowering::OPEN8TargetLowering(const OPEN8TargetMachine &TM,
   setBooleanVectorContents(ZeroOrOneBooleanContent);
   setSchedulingPreference(Sched::RegPressure);
   setStackPointerRegisterToSaveRestore(OPEN8::SP);
-  setSupportsUnalignedAtomics(true);
+  setSupportsUnalignedAtomics(false);
 
   setOperationAction(ISD::GlobalAddress, MVT::i16, Custom);
   setOperationAction(ISD::BlockAddress, MVT::i16, Custom);
@@ -113,15 +113,17 @@ OPEN8TargetLowering::OPEN8TargetLowering(const OPEN8TargetMachine &TM,
 
   setOperationAction(ISD::BSWAP, MVT::i16, Expand);
 
-  // Add support for postincrement and predecrement load/stores.
+  // Add support for postincrement
   setIndexedLoadAction(ISD::POST_INC, MVT::i8, Legal);
   setIndexedLoadAction(ISD::POST_INC, MVT::i16, Legal);
-  setIndexedLoadAction(ISD::PRE_DEC, MVT::i8, Legal);
-  setIndexedLoadAction(ISD::PRE_DEC, MVT::i16, Legal);
   setIndexedStoreAction(ISD::POST_INC, MVT::i8, Legal);
   setIndexedStoreAction(ISD::POST_INC, MVT::i16, Legal);
-  setIndexedStoreAction(ISD::PRE_DEC, MVT::i8, Legal);
-  setIndexedStoreAction(ISD::PRE_DEC, MVT::i16, Legal);
+
+  // Remove support for predecrement load/stores.
+  //setIndexedLoadAction(ISD::PRE_DEC, MVT::i8, Legal);
+  //setIndexedLoadAction(ISD::PRE_DEC, MVT::i16, Legal);
+  //setIndexedStoreAction(ISD::PRE_DEC, MVT::i8, Legal);
+  //setIndexedStoreAction(ISD::PRE_DEC, MVT::i16, Legal);
 
   setOperationAction(ISD::BR_JT, MVT::Other, Expand);
 
@@ -152,12 +154,10 @@ OPEN8TargetLowering::OPEN8TargetLowering(const OPEN8TargetMachine &TM,
   setOperationAction(ISD::SREM, MVT::i16, Expand);
 
   // Make division and modulus custom
-  setOperationAction(ISD::UDIVREM, MVT::i8, Custom);
-  setOperationAction(ISD::UDIVREM, MVT::i16, Custom);
-  setOperationAction(ISD::UDIVREM, MVT::i32, Custom);
-  setOperationAction(ISD::SDIVREM, MVT::i8, Custom);
-  setOperationAction(ISD::SDIVREM, MVT::i16, Custom);
-  setOperationAction(ISD::SDIVREM, MVT::i32, Custom);
+  for (MVT VT : MVT::integer_valuetypes()) {
+    setOperationAction(ISD::UDIVREM, VT, Custom);
+    setOperationAction(ISD::SDIVREM, VT, Custom);
+  }
 
   // Do not use MUL. The OPEN8 instructions are closer to SMUL_LOHI &co.
   setOperationAction(ISD::MUL, MVT::i8, Expand);
@@ -168,8 +168,8 @@ OPEN8TargetLowering::OPEN8TargetLowering(const OPEN8TargetMachine &TM,
   setOperationAction(ISD::UMUL_LOHI, MVT::i16, Expand);
 
   // Expand multiplications to libcalls when there is
-  // no hardware MUL.
-  if (!Subtarget.supportsMultiplication()) {
+  // no hardware MUL.  //TODO: REV this, supoort mult but not all
+  if (/*!Subtarget.supportsMultiplication()*/false) {
     setOperationAction(ISD::SMUL_LOHI, MVT::i8, Expand);
     setOperationAction(ISD::UMUL_LOHI, MVT::i8, Expand);
   }
@@ -197,25 +197,37 @@ OPEN8TargetLowering::OPEN8TargetLowering(const OPEN8TargetMachine &TM,
   setLibcallName(RTLIB::SDIV_I8, nullptr);
   setLibcallName(RTLIB::SDIV_I16, nullptr);
   setLibcallName(RTLIB::SDIV_I32, nullptr);
+  setLibcallName(RTLIB::SDIV_I64, nullptr);
+  setLibcallName(RTLIB::SDIV_I128, nullptr);
   setLibcallName(RTLIB::UDIV_I8, nullptr);
   setLibcallName(RTLIB::UDIV_I16, nullptr);
   setLibcallName(RTLIB::UDIV_I32, nullptr);
+  setLibcallName(RTLIB::UDIV_I64, nullptr);
+  setLibcallName(RTLIB::UDIV_I128, nullptr);
 
   // Modulus rtlib functions (not supported), use divmod functions instead
   setLibcallName(RTLIB::SREM_I8, nullptr);
   setLibcallName(RTLIB::SREM_I16, nullptr);
   setLibcallName(RTLIB::SREM_I32, nullptr);
+  setLibcallName(RTLIB::SREM_I64, nullptr);
+  setLibcallName(RTLIB::SREM_I128, nullptr);
   setLibcallName(RTLIB::UREM_I8, nullptr);
   setLibcallName(RTLIB::UREM_I16, nullptr);
   setLibcallName(RTLIB::UREM_I32, nullptr);
+  setLibcallName(RTLIB::UREM_I64, nullptr);
+  setLibcallName(RTLIB::UREM_I128, nullptr);
 
   // Division and modulus rtlib functions
   setLibcallName(RTLIB::SDIVREM_I8, "__divmodqi4");
   setLibcallName(RTLIB::SDIVREM_I16, "__divmodhi4");
   setLibcallName(RTLIB::SDIVREM_I32, "__divmodsi4");
+  setLibcallName(RTLIB::SDIVREM_I64, "__divmoddi4");
+  setLibcallName(RTLIB::SDIVREM_I128, "__divmodti4");
   setLibcallName(RTLIB::UDIVREM_I8, "__udivmodqi4");
   setLibcallName(RTLIB::UDIVREM_I16, "__udivmodhi4");
   setLibcallName(RTLIB::UDIVREM_I32, "__udivmodsi4");
+  setLibcallName(RTLIB::UDIVREM_I64, "__udivmoddi4");
+  setLibcallName(RTLIB::UDIVREM_I128, "__udivmodti4");
 
   // Several of the runtime library functions use a special calling conv
   setLibcallCallingConv(RTLIB::SDIVREM_I8, CallingConv::OPEN8_BUILTIN);
