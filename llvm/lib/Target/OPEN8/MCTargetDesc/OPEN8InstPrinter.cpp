@@ -101,12 +101,6 @@ const char *OPEN8InstPrinter::getPrettyRegisterName(unsigned RegNum,
 void OPEN8InstPrinter::printOperand(const MCInst *MI, unsigned OpNo,
                                   raw_ostream &O) {
   const MCOperandInfo &MOI = this->MII.get(MI->getOpcode()).OpInfo[OpNo];
-  if (MOI.RegClass == OPEN8::ZREGRegClassID) {
-    // Special case for the Z register, which sometimes doesn't have an operand
-    // in the MCInst.
-    O << "Z";
-    return;
-  }
 
   if (OpNo >= MI->size()) {
     // Not all operands are correctly disassembled at the moment. This means
@@ -122,8 +116,7 @@ void OPEN8InstPrinter::printOperand(const MCInst *MI, unsigned OpNo,
 
   if (Op.isReg()) {
     bool isPtrReg = (MOI.RegClass == OPEN8::PTRREGSRegClassID) ||
-                    (MOI.RegClass == OPEN8::PTRDISPREGSRegClassID) ||
-                    (MOI.RegClass == OPEN8::ZREGRegClassID);
+                    (MOI.RegClass == OPEN8::PTRDISPREGSRegClassID);
 
     if (isPtrReg) {
       O << getRegisterName(Op.getReg(), OPEN8::ptr);

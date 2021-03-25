@@ -364,10 +364,10 @@ Uses = [SP] in
                                 "#ADJCALLSTACKDOWN",
                                 [(OPEN8callseq_start timm:$amt, timm:$amt2)]>;
 
-  // R31R30 is used to update SP, since it is a scratch reg and this instruction
-  // is placed after the function call then R31R30 should be always free.
-  //let Defs = [R31R30],
-  //Uses = [R31R30] in
+  // R5R4 is used to update SP, since it is a scratch reg and this instruction
+  // is placed after the function call then R5R4 should be always free.
+  //let Defs = [R5R4],
+  //Uses = [R5R4] in
   //:TODO: if we enable this, the pseudo is killed because it looks dead
   def ADJCALLSTACKUP : Pseudo<(outs),
                               (ins i16imm:$amt1, i16imm:$amt2),
@@ -480,8 +480,8 @@ Defs = [SREG] in
   // Expands to:
   // subi Rd,   K
   // sbci Rd+1, K+1
-  def SUBIWRdK : Pseudo<(outs DLDREGS:$rd),
-                        (ins DLDREGS:$src, i16imm:$rr),
+  def SUBIWRdK : Pseudo<(outs DREGS:$rd),
+                        (ins DREGS:$src, i16imm:$rr),
                         "subiw\t$rd, $rr",
                         [(set i16:$rd, (sub i16:$src, imm:$rr)),
                          (implicit SREG)]>;
@@ -526,8 +526,8 @@ Defs = [SREG] in
     // SBCIW Rd+1:Rd, K+1:K
     // sbci Rd,   K
     // sbci Rd+1, K+1
-    def SBCIWRdK : Pseudo<(outs DLDREGS:$rd),
-                          (ins DLDREGS:$src, i16imm:$rr),
+    def SBCIWRdK : Pseudo<(outs DREGS:$rd),
+                          (ins DREGS:$src, i16imm:$rr),
                           "sbciw\t$rd, $rr",
                           [(set i16:$rd, (sube i16:$src, imm:$rr)),
                            (implicit SREG)]>;
@@ -609,8 +609,7 @@ Defs = [R1, R0, SREG] in
                Requires<[SupportsMultiplication]>;
 }
 
-let Defs = [R15, R14, R13, R12, R11, R10, R9,
-            R8, R7, R6, R5, R4, R3, R2, R1, R0] in
+let Defs = [R7, R6, R5, R4, R3, R2, R1, R0] in
 def DESK : FDES<(outs),
                 (ins i8imm:$k),
                 "des\t$k",
@@ -697,8 +696,8 @@ Defs = [SREG] in
   // Expands to:
   // andi Rd,   K
   // andi Rd+1, K+1
-  def ANDIWRdK : Pseudo<(outs DLDREGS:$rd),
-                        (ins DLDREGS:$src, i16imm:$k),
+  def ANDIWRdK : Pseudo<(outs DREGS:$rd),
+                        (ins DREGS:$src, i16imm:$k),
                         "andiw\t$rd, $k",
                         [(set i16:$rd, (and i16:$src, imm:$k)),
                          (implicit SREG)]>;
@@ -715,8 +714,8 @@ Defs = [SREG] in
   // Expands to:
   // ori Rd,   K
   // ori Rd+1, K+1
-  def ORIWRdK : Pseudo<(outs DLDREGS:$rd),
-                       (ins DLDREGS:$src, i16imm:$rr),
+  def ORIWRdK : Pseudo<(outs DREGS:$rd),
+                       (ins DREGS:$src, i16imm:$rr),
                        "oriw\t$rd, $rr",
                        [(set i16:$rd, (or i16:$src, imm:$rr)),
                         (implicit SREG)]>;
@@ -791,7 +790,7 @@ isTerminator = 1 in
                    [(br bb:$target)]>;
 
   let isIndirectBranch = 1,
-  Uses = [R31R30] in
+  Uses = [R5R4] in
   def IJMP : F16<0b1001010000001001,
                  (outs),
                  (ins),
@@ -800,7 +799,7 @@ isTerminator = 1 in
              Requires<[HasIJMPCALL]>;
 
   let isIndirectBranch = 1,
-  Uses = [R31R30] in
+  Uses = [R5R4] in
   def EIJMP : F16<0b1001010000011001,
                   (outs),
                   (ins),
@@ -832,7 +831,7 @@ let isCall = 1 in
 
   // SP is marked as a use to prevent stack-pointer assignments that appear
   // immediately before calls from potentially appearing dead.
-  let Uses = [SP, R31R30] in
+  let Uses = [SP, R5R4] in
   def ICALL : F16<0b1001010100001001,
                   (outs),
                   (ins variable_ops),
@@ -842,7 +841,7 @@ let isCall = 1 in
 
   // SP is marked as a use to prevent stack-pointer assignments that appear
   // immediately before calls from potentially appearing dead.
-  let Uses = [SP, R31R30] in
+  let Uses = [SP, R5R4] in
   def EICALL : F16<0b1001010100011001,
                    (outs),
                    (ins variable_ops),
@@ -1144,7 +1143,7 @@ let isReMaterializable = 1 in
   // Expands to:
   // ldi Rd,   K
   // ldi Rd+1, K+1
-  def LDIWRdK : Pseudo<(outs DLDREGS:$dst),
+  def LDIWRdK : Pseudo<(outs DREGS:$dst),
                        (ins i16imm:$src),
                        "ldiw\t$dst, $src",
                        [(set i16:$dst, imm:$src)]>;
@@ -1472,7 +1471,7 @@ mayLoad = 1,
 hasSideEffects = 0 in
 {
   let Defs = [R0],
-      Uses = [R31R30] in
+      Uses = [R5R4] in
   def LPM : F16<0b1001010111001000,
                 (outs),
                 (ins),
@@ -1483,30 +1482,30 @@ hasSideEffects = 0 in
   def LPMRdZ : FLPMX<0,
                      0,
                      (outs GPR8:$dst),
-                     (ins ZREG:$z),
+                     (ins DREGS:$z),
                      "lpm\t$dst, $z",
                      []>,
                Requires<[HasLPMX]>;
 
   // Load program memory, while postincrementing the Z register.
-  let Defs = [R31R30] in
+  let Defs = [R5R4] in
   {
     def LPMRdZPi : FLPMX<0,
                          1,
                          (outs GPR8:$dst),
-                         (ins ZREG:$z),
+                         (ins DREGS:$z),
                          "lpm\t$dst, $z+",
                          []>,
                    Requires<[HasLPMX]>;
 
     def LPMWRdZ : Pseudo<(outs DREGS:$dst),
-                         (ins ZREG:$z),
+                         (ins DREGS:$z),
                          "lpmw\t$dst, $z",
                          []>,
                   Requires<[HasLPMX]>;
 
     def LPMWRdZPi : Pseudo<(outs DREGS:$dst),
-                           (ins ZREG:$z),
+                           (ins DREGS:$z),
                            "lpmw\t$dst, $z+",
                            []>,
                     Requires<[HasLPMX]>;
@@ -1518,7 +1517,7 @@ let mayLoad = 1,
 hasSideEffects = 0 in
 {
   let Defs = [R0],
-      Uses = [R31R30] in
+      Uses = [R5R4] in
   def ELPM : F16<0b1001010111011000,
                  (outs),
                  (ins),
@@ -1529,16 +1528,16 @@ hasSideEffects = 0 in
   def ELPMRdZ : FLPMX<1,
                       0,
                       (outs GPR8:$dst),
-                      (ins ZREG:$z),
+                      (ins DREGS:$z),
                       "elpm\t$dst, $z",
                       []>,
                 Requires<[HasELPMX]>;
 
-  let Defs = [R31R30] in
+  let Defs = [R5R4] in
   def ELPMRdZPi : FLPMX<1,
                         1,
                         (outs GPR8:$dst),
-                        (ins ZREG: $z),
+                        (ins DREGS: $z),
                         "elpm\t$dst, $z+",
                         []>,
                   Requires<[HasELPMX]>;
@@ -1547,7 +1546,7 @@ hasSideEffects = 0 in
 // Store program memory operations.
 let Uses = [R1, R0] in
 {
-  let Uses = [R31R30, R1, R0] in
+  let Uses = [R5R4, R1, R0] in
   def SPM : F16<0b1001010111101000,
                 (outs),
                 (ins),
@@ -1555,10 +1554,10 @@ let Uses = [R1, R0] in
                 []>,
             Requires<[HasSPM]>;
 
-  let Defs = [R31R30] in
+  let Defs = [R5R4] in
   def SPMZPi : F16<0b1001010111111000,
                    (outs),
-                   (ins ZREG:$z),
+                   (ins DREGS:$z),
                    "spm $z+",
                    []>,
                Requires<[HasSPMX]>;
@@ -1635,28 +1634,28 @@ hasSideEffects = 0 in
 // Read-Write-Modify (RMW) instructions.
 def XCHZRd : FZRd<0b100,
                   (outs GPR8:$rd),
-                  (ins ZREG:$z),
+                  (ins DREGS:$z),
                   "xch\t$z, $rd",
                   []>,
              Requires<[SupportsRMW]>;
 
 def LASZRd : FZRd<0b101,
                   (outs GPR8:$rd),
-                  (ins ZREG:$z),
+                  (ins DREGS:$z),
                   "las\t$z, $rd",
                   []>,
              Requires<[SupportsRMW]>;
 
 def LACZRd : FZRd<0b110,
                   (outs GPR8:$rd),
-                  (ins ZREG:$z),
+                  (ins DREGS:$z),
                   "lac\t$z, $rd",
                   []>,
              Requires<[SupportsRMW]>;
 
 def LATZRd : FZRd<0b111,
                   (outs GPR8:$rd),
-                  (ins ZREG:$z),
+                  (ins DREGS:$z),
                   "lat\t$z, $rd",
                   []>,
              Requires<[SupportsRMW]>;
@@ -1681,7 +1680,7 @@ Defs = [SREG] in
                        "lslb7\t$rd",
                        [(set i8:$rd, (OPEN8lsl7 i8:$src)), (implicit SREG)]>;
 
-  def LSLW4Rd : Pseudo<(outs DLDREGS:$rd),
+  def LSLW4Rd : Pseudo<(outs DREGS:$rd),
                        (ins DREGS:$src),
                        "lslw4\t$rd",
                        [(set i16:$rd, (OPEN8lsl4 i16:$src)), (implicit SREG)]>;
@@ -1691,7 +1690,7 @@ Defs = [SREG] in
                        "lslw8\t$rd",
                        [(set i16:$rd, (OPEN8lsl8 i16:$src)), (implicit SREG)]>;
 
-  def LSLW12Rd : Pseudo<(outs DLDREGS:$rd),
+  def LSLW12Rd : Pseudo<(outs DREGS:$rd),
                        (ins DREGS:$src),
                        "lslw12\t$rd",
                        [(set i16:$rd, (OPEN8lsl12 i16:$src)), (implicit SREG)]>;
@@ -1713,7 +1712,7 @@ Defs = [SREG] in
                       "lsrw\t$rd",
                       [(set i16:$rd, (OPEN8lsr i16:$src)), (implicit SREG)]>;
 
-  def LSRW4Rd : Pseudo<(outs DLDREGS:$rd),
+  def LSRW4Rd : Pseudo<(outs DREGS:$rd),
                        (ins DREGS:$src),
                        "lsrw4\t$rd",
                        [(set i16:$rd, (OPEN8lsr4 i16:$src)), (implicit SREG)]>;
@@ -1723,7 +1722,7 @@ Defs = [SREG] in
                        "lsrw8\t$rd",
                        [(set i16:$rd, (OPEN8lsr8 i16:$src)), (implicit SREG)]>;
 
-  def LSRW12Rd : Pseudo<(outs DLDREGS:$rd),
+  def LSRW12Rd : Pseudo<(outs DREGS:$rd),
                        (ins DREGS:$src),
                        "lsrw12\t$rd",
                        [(set i16:$rd, (OPEN8lsr12 i16:$src)), (implicit SREG)]>;
@@ -1963,8 +1962,8 @@ def ZEXT : ExtensionPseudo<
 // This pseudo gets expanded into a movw+adiw thus it clobbers SREG.
 let Defs = [SREG],
     hasSideEffects = 0 in
-def FRMIDX : Pseudo<(outs DLDREGS:$dst),
-                    (ins DLDREGS:$src, i16imm:$src2),
+def FRMIDX : Pseudo<(outs DREGS:$dst),
+                    (ins DREGS:$src, i16imm:$src2),
                     "frmidx\t$dst, $src, $src2",
                     []>;
 

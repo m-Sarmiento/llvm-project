@@ -74,8 +74,8 @@ OPEN8MCCodeEmitter::loadStorePostEncoder(const MCInst &MI, unsigned EncodedValue
   unsigned Opcode = MI.getOpcode();
 
   // check whether either of the registers are the X pointer register.
-  bool IsRegX = MI.getOperand(0).getReg() == OPEN8::R27R26 ||
-                  MI.getOperand(1).getReg() == OPEN8::R27R26;
+  bool IsRegX = false; /*MI.getOperand(0).getReg() == OPEN8::R27R26 ||
+                  MI.getOperand(1).getReg() == OPEN8::R27R26;*/
 
   bool IsPredec = Opcode == OPEN8::LDRdPtrPd || Opcode == OPEN8::STPtrPdRr;
   bool IsPostinc = Opcode == OPEN8::LDRdPtrPi || Opcode == OPEN8::STPtrPiRr;
@@ -119,9 +119,9 @@ unsigned OPEN8MCCodeEmitter::encodeLDSTPtrReg(const MCInst &MI, unsigned OpNo,
   assert(MO.isReg());
 
   switch (MO.getReg()) {
-  case OPEN8::R27R26: return 0x03; // X: 0b11
-  case OPEN8::R29R28: return 0x02; // Y: 0b10
-  case OPEN8::R31R30: return 0x00; // Z: 0b00
+  //case OPEN8::R27R26: return 0x03; // X: 0b11
+  case OPEN8::R7R6: return 0x02; // Y: 0b10
+  case OPEN8::R5R4: return 0x00; // Z: 0b00
   default:
     llvm_unreachable("invalid pointer register");
   }
@@ -144,10 +144,10 @@ unsigned OPEN8MCCodeEmitter::encodeMemri(const MCInst &MI, unsigned OpNo,
   switch (RegOp.getReg()) {
   default:
     llvm_unreachable("Expected either Y or Z register");
-  case OPEN8::R31R30:
+  case OPEN8::R5R4:
     RegBit = 0;
     break; // Z register
-  case OPEN8::R29R28:
+  case OPEN8::R7R6:
     RegBit = 1;
     break; // Y register
   }

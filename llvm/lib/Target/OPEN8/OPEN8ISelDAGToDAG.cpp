@@ -363,7 +363,7 @@ template <> bool OPEN8DAGToDAGISel::select<ISD::LOAD>(SDNode *N) {
 
   assert(Subtarget->hasLPM() && "cannot load from program memory on this mcu");
 
-  // This is a flash memory load, move the pointer into R31R30 and emit
+  // This is a flash memory load, move the pointer into R5R4 and emit
   // the lpm instruction.
   MVT VT = LD->getMemoryVT().getSimpleVT();
   SDValue Chain = LD->getChain();
@@ -371,11 +371,11 @@ template <> bool OPEN8DAGToDAGISel::select<ISD::LOAD>(SDNode *N) {
   SDNode *ResNode;
   SDLoc DL(N);
 
-  Chain = CurDAG->getCopyToReg(Chain, DL, OPEN8::R31R30, Ptr, SDValue());
-  Ptr = CurDAG->getCopyFromReg(Chain, DL, OPEN8::R31R30, MVT::i16,
+  Chain = CurDAG->getCopyToReg(Chain, DL, OPEN8::R5R4, Ptr, SDValue());
+  Ptr = CurDAG->getCopyFromReg(Chain, DL, OPEN8::R5R4, MVT::i16,
                                Chain.getValue(1));
 
-  SDValue RegZ = CurDAG->getRegister(OPEN8::R31R30, MVT::i16);
+  SDValue RegZ = CurDAG->getRegister(OPEN8::R5R4, MVT::i16);
 
   // Check if the opcode can be converted into an indexed load.
   if (unsigned LPMOpc = selectIndexedProgMemLoad(LD, VT)) {
@@ -428,9 +428,9 @@ template <> bool OPEN8DAGToDAGISel::select<OPEN8ISD::CALL>(SDNode *N) {
   }
 
   SDLoc DL(N);
-  Chain = CurDAG->getCopyToReg(Chain, DL, OPEN8::R31R30, Callee, InFlag);
+  Chain = CurDAG->getCopyToReg(Chain, DL, OPEN8::R5R4, Callee, InFlag);
   SmallVector<SDValue, 8> Ops;
-  Ops.push_back(CurDAG->getRegister(OPEN8::R31R30, MVT::i16));
+  Ops.push_back(CurDAG->getRegister(OPEN8::R5R4, MVT::i16));
 
   // Map all operands into the new node.
   for (unsigned i = 2, e = LastOpNum + 1; i != e; ++i) {
@@ -455,8 +455,8 @@ template <> bool OPEN8DAGToDAGISel::select<ISD::BRIND>(SDNode *N) {
   SDValue JmpAddr = N->getOperand(1);
 
   SDLoc DL(N);
-  // Move the destination address of the indirect branch into R31R30.
-  Chain = CurDAG->getCopyToReg(Chain, DL, OPEN8::R31R30, JmpAddr);
+  // Move the destination address of the indirect branch into R5R4.
+  Chain = CurDAG->getCopyToReg(Chain, DL, OPEN8::R5R4, JmpAddr);
   SDNode *ResNode = CurDAG->getMachineNode(OPEN8::IJMP, DL, MVT::Other, Chain);
 
   ReplaceUses(SDValue(N, 0), SDValue(ResNode, 0));

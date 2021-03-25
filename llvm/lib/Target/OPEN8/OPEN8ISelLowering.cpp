@@ -989,15 +989,9 @@ bool OPEN8TargetLowering::isOffsetFoldingLegal(
 /// Registers for calling conventions, ordered in reverse as required by ABI.
 /// Both arrays must be of the same length.
 static const MCPhysReg RegList8[] = {
-    OPEN8::R25, OPEN8::R24, OPEN8::R23, OPEN8::R22, OPEN8::R21, OPEN8::R20,
-    OPEN8::R19, OPEN8::R18, OPEN8::R17, OPEN8::R16, OPEN8::R15, OPEN8::R14,
-    OPEN8::R13, OPEN8::R12, OPEN8::R11, OPEN8::R10, OPEN8::R9,  OPEN8::R8};
+    OPEN8::R3,  OPEN8::R2};
 static const MCPhysReg RegList16[] = {
-    OPEN8::R26R25, OPEN8::R25R24, OPEN8::R24R23, OPEN8::R23R22,
-    OPEN8::R22R21, OPEN8::R21R20, OPEN8::R20R19, OPEN8::R19R18,
-    OPEN8::R18R17, OPEN8::R17R16, OPEN8::R16R15, OPEN8::R15R14,
-    OPEN8::R14R13, OPEN8::R13R12, OPEN8::R12R11, OPEN8::R11R10,
-    OPEN8::R10R9,  OPEN8::R9R8};
+    OPEN8::R5R4, OPEN8::R3R2};
 
 static_assert(array_lengthof(RegList8) == array_lengthof(RegList16),
         "8-bit and 16-bit register arrays must be of equal length");
@@ -1943,15 +1937,6 @@ OPEN8TargetLowering::getRegForInlineAsmConstraint(const TargetRegisterInfo *TRI,
       return std::make_pair(unsigned(OPEN8::R0), &OPEN8::GPR8RegClass);
     case 'w': // Special upper register pairs: r24, r26, r28, r30.
       return std::make_pair(0U, &OPEN8::IWREGSRegClass);
-    case 'x': // Pointer register pair X: r27:r26.
-    case 'X':
-      return std::make_pair(unsigned(OPEN8::R27R26), &OPEN8::PTRREGSRegClass);
-    case 'y': // Pointer register pair Y: r29:r28.
-    case 'Y':
-      return std::make_pair(unsigned(OPEN8::R29R28), &OPEN8::PTRREGSRegClass);
-    case 'z': // Pointer register pair Z: r31:r30.
-    case 'Z':
-      return std::make_pair(unsigned(OPEN8::R31R30), &OPEN8::PTRREGSRegClass);
     default:
       break;
     }
@@ -2076,28 +2061,12 @@ Register OPEN8TargetLowering::getRegisterByName(const char *RegName, LLT VT,
     Reg = StringSwitch<unsigned>(RegName)
       .Case("r0", OPEN8::R0).Case("r1", OPEN8::R1).Case("r2", OPEN8::R2)
       .Case("r3", OPEN8::R3).Case("r4", OPEN8::R4).Case("r5", OPEN8::R5)
-      .Case("r6", OPEN8::R6).Case("r7", OPEN8::R7).Case("r8", OPEN8::R8)
-      .Case("r9", OPEN8::R9).Case("r10", OPEN8::R10).Case("r11", OPEN8::R11)
-      .Case("r12", OPEN8::R12).Case("r13", OPEN8::R13).Case("r14", OPEN8::R14)
-      .Case("r15", OPEN8::R15).Case("r16", OPEN8::R16).Case("r17", OPEN8::R17)
-      .Case("r18", OPEN8::R18).Case("r19", OPEN8::R19).Case("r20", OPEN8::R20)
-      .Case("r21", OPEN8::R21).Case("r22", OPEN8::R22).Case("r23", OPEN8::R23)
-      .Case("r24", OPEN8::R24).Case("r25", OPEN8::R25).Case("r26", OPEN8::R26)
-      .Case("r27", OPEN8::R27).Case("r28", OPEN8::R28).Case("r29", OPEN8::R29)
-      .Case("r30", OPEN8::R30).Case("r31", OPEN8::R31)
-      .Case("X", OPEN8::R27R26).Case("Y", OPEN8::R29R28).Case("Z", OPEN8::R31R30)
+      .Case("r6", OPEN8::R6).Case("r7", OPEN8::R7)
       .Default(0);
   } else {
     Reg = StringSwitch<unsigned>(RegName)
       .Case("r0", OPEN8::R1R0).Case("r2", OPEN8::R3R2)
       .Case("r4", OPEN8::R5R4).Case("r6", OPEN8::R7R6)
-      .Case("r8", OPEN8::R9R8).Case("r10", OPEN8::R11R10)
-      .Case("r12", OPEN8::R13R12).Case("r14", OPEN8::R15R14)
-      .Case("r16", OPEN8::R17R16).Case("r18", OPEN8::R19R18)
-      .Case("r20", OPEN8::R21R20).Case("r22", OPEN8::R23R22)
-      .Case("r24", OPEN8::R25R24).Case("r26", OPEN8::R27R26)
-      .Case("r28", OPEN8::R29R28).Case("r30", OPEN8::R31R30)
-      .Case("X", OPEN8::R27R26).Case("Y", OPEN8::R29R28).Case("Z", OPEN8::R31R30)
       .Default(0);
   }
 

@@ -101,14 +101,14 @@ void OPEN8FrameLowering::emitPrologue(MachineFunction &MF,
   }
 
   // Update Y with the new base value.
-  BuildMI(MBB, MBBI, DL, TII.get(OPEN8::SPREAD), OPEN8::R29R28)
+  BuildMI(MBB, MBBI, DL, TII.get(OPEN8::SPREAD), OPEN8::R7R6)
       .addReg(OPEN8::SP)
       .setMIFlag(MachineInstr::FrameSetup);
 
   // Mark the FramePtr as live-in in every block except the entry.
   for (MachineFunction::iterator I = std::next(MF.begin()), E = MF.end();
        I != E; ++I) {
-    I->addLiveIn(OPEN8::R29R28);
+    I->addLiveIn(OPEN8::R7R6);
   }
 
   if (!FrameSize) {
@@ -118,16 +118,16 @@ void OPEN8FrameLowering::emitPrologue(MachineFunction &MF,
   // Reserve the necessary frame memory by doing FP -= <size>.
   unsigned Opcode = (isUInt<6>(FrameSize)) ? OPEN8::SBIWRdK : OPEN8::SUBIWRdK;
 
-  MachineInstr *MI = BuildMI(MBB, MBBI, DL, TII.get(Opcode), OPEN8::R29R28)
-                         .addReg(OPEN8::R29R28, RegState::Kill)
+  MachineInstr *MI = BuildMI(MBB, MBBI, DL, TII.get(Opcode), OPEN8::R7R6)
+                         .addReg(OPEN8::R7R6, RegState::Kill)
                          .addImm(FrameSize)
                          .setMIFlag(MachineInstr::FrameSetup);
   // The SREG implicit def is dead.
   MI->getOperand(3).setIsDead();
 
-  // Write back R29R28 to SP and temporarily disable interrupts.
+  // Write back R7R6 to SP and temporarily disable interrupts.
   BuildMI(MBB, MBBI, DL, TII.get(OPEN8::SPWRITE), OPEN8::SP)
-      .addReg(OPEN8::R29R28)
+      .addReg(OPEN8::R7R6)
       .setMIFlag(MachineInstr::FrameSetup);
 }
 
@@ -200,15 +200,15 @@ void OPEN8FrameLowering::emitEpilogue(MachineFunction &MF,
   }
 
   // Restore the frame pointer by doing FP += <size>.
-  MachineInstr *MI = BuildMI(MBB, MBBI, DL, TII.get(Opcode), OPEN8::R29R28)
-                         .addReg(OPEN8::R29R28, RegState::Kill)
+  MachineInstr *MI = BuildMI(MBB, MBBI, DL, TII.get(Opcode), OPEN8::R7R6)
+                         .addReg(OPEN8::R7R6, RegState::Kill)
                          .addImm(FrameSize);
   // The SREG implicit def is dead.
   MI->getOperand(3).setIsDead();
 
-  // Write back R29R28 to SP and temporarily disable interrupts.
+  // Write back R7R6 to SP and temporarily disable interrupts.
   BuildMI(MBB, MBBI, DL, TII.get(OPEN8::SPWRITE), OPEN8::SP)
-      .addReg(OPEN8::R29R28, RegState::Kill);
+      .addReg(OPEN8::R7R6, RegState::Kill);
 
   restoreStatusRegister(MF, MBB);
 }
@@ -335,7 +335,7 @@ MachineBasicBlock::iterator OPEN8FrameLowering::eliminateCallFramePseudoInstr(
   // function entry. Delete the call frame pseudo and replace all pseudo stores
   // with real store instructions.
   if (hasReservedCallFrame(MF)) {
-    fixStackStores(MBB, MI, TII, OPEN8::R29R28);
+    fixStackStores(MBB, MI, TII, OPEN8::R7R6);
     return MBB.erase(MI);
   }
 
@@ -354,19 +354,19 @@ MachineBasicBlock::iterator OPEN8FrameLowering::eliminateCallFramePseudoInstr(
       // relevant values directly to the stack. However, doing that correctly
       // (in the right order, possibly skipping some empty space for undef
       // values, etc) is tricky and thus left to be optimized in the future.
-      BuildMI(MBB, MI, DL, TII.get(OPEN8::SPREAD), OPEN8::R31R30).addReg(OPEN8::SP);
+      BuildMI(MBB, MI, DL, TII.get(OPEN8::SPREAD), OPEN8::R7R6).addReg(OPEN8::SP);
 
-      MachineInstr *New = BuildMI(MBB, MI, DL, TII.get(OPEN8::SUBIWRdK), OPEN8::R31R30)
-                              .addReg(OPEN8::R31R30, RegState::Kill)
+      MachineInstr *New = BuildMI(MBB, MI, DL, TII.get(OPEN8::SUBIWRdK), OPEN8::R7R6)
+                              .addReg(OPEN8::R7R6, RegState::Kill)
                               .addImm(Amount);
       New->getOperand(3).setIsDead();
 
       BuildMI(MBB, MI, DL, TII.get(OPEN8::SPWRITE), OPEN8::SP)
-          .addReg(OPEN8::R31R30);
+          .addReg(OPEN8::R7R6);
 
       // Make sure the remaining stack stores are converted to real store
       // instructions.
-      fixStackStores(MBB, MI, TII, OPEN8::R31R30);
+      fixStackStores(MBB, MI, TII, OPEN8::R7R6);
     } else {
       assert(Opcode == TII.getCallFrameDestroyOpcode());
 
@@ -384,15 +384,15 @@ MachineBasicBlock::iterator OPEN8FrameLowering::eliminateCallFramePseudoInstr(
       }
 
       // Build the instruction sequence.
-      BuildMI(MBB, MI, DL, TII.get(OPEN8::SPREAD), OPEN8::R31R30).addReg(OPEN8::SP);
+      BuildMI(MBB, MI, DL, TII.get(OPEN8::SPREAD), OPEN8::R7R6).addReg(OPEN8::SP);
 
-      MachineInstr *New = BuildMI(MBB, MI, DL, TII.get(addOpcode), OPEN8::R31R30)
-                              .addReg(OPEN8::R31R30, RegState::Kill)
+      MachineInstr *New = BuildMI(MBB, MI, DL, TII.get(addOpcode), OPEN8::R7R6)
+                              .addReg(OPEN8::R7R6, RegState::Kill)
                               .addImm(Amount);
       New->getOperand(3).setIsDead();
 
       BuildMI(MBB, MI, DL, TII.get(OPEN8::SPWRITE), OPEN8::SP)
-          .addReg(OPEN8::R31R30, RegState::Kill);
+          .addReg(OPEN8::R7R6, RegState::Kill);
     }
   }
 
@@ -406,8 +406,8 @@ void OPEN8FrameLowering::determineCalleeSaves(MachineFunction &MF,
 
   // If we have a frame pointer, the Y register needs to be saved as well.
   if (hasFP(MF)) {
-    SavedRegs.set(OPEN8::R29);
-    SavedRegs.set(OPEN8::R28);
+    SavedRegs.set(OPEN8::R7);
+    SavedRegs.set(OPEN8::R6);
   }
 }
 /// The frame analyzer pass.

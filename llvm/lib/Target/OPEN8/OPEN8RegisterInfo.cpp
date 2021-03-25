@@ -75,9 +75,9 @@ BitVector OPEN8RegisterInfo::getReservedRegs(const MachineFunction &MF) const {
   // TODO: Write a pass to enumerate functions which reserved the Y register
   //       but didn't end up needing a frame pointer. In these, we can
   //       convert one or two of the spills inside to use the Y register.
-  Reserved.set(OPEN8::R28);
-  Reserved.set(OPEN8::R29);
-  Reserved.set(OPEN8::R29R28);
+  Reserved.set(OPEN8::R6);
+  Reserved.set(OPEN8::R7);
+  Reserved.set(OPEN8::R7R6);
 
   return Reserved;
 }
@@ -155,7 +155,7 @@ void OPEN8RegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
   // expand it into move + add.
   if (MI.getOpcode() == OPEN8::FRMIDX) {
     MI.setDesc(TII.get(OPEN8::MOVWRdRr));
-    MI.getOperand(FIOperandNum).ChangeToRegister(OPEN8::R29R28, false);
+    MI.getOperand(FIOperandNum).ChangeToRegister(OPEN8::R7R6, false);
     MI.RemoveOperand(2);
 
     assert(Offset > 0 && "Invalid offset");
@@ -163,7 +163,7 @@ void OPEN8RegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
     // We need to materialize the offset via an add instruction.
     unsigned Opcode;
     Register DstReg = MI.getOperand(0).getReg();
-    assert(DstReg != OPEN8::R29R28 && "Dest reg cannot be the frame pointer");
+    assert(DstReg != OPEN8::R7R6 && "Dest reg cannot be the frame pointer");
 
     II++; // Skip over the FRMIDX (and now MOVW) instruction.
 
@@ -180,9 +180,9 @@ void OPEN8RegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
 
     // Select the best opcode based on DstReg and the offset size.
     switch (DstReg) {
-    case OPEN8::R25R24:
-    case OPEN8::R27R26:
-    case OPEN8::R31R30: {
+    //case OPEN8::R25R24:
+    //case OPEN8::R27R26:
+    case OPEN8::R5R4: {
       if (isUInt<6>(Offset)) {
         Opcode = OPEN8::ADIWRdK;
         break;
@@ -225,8 +225,8 @@ void OPEN8RegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
     // restore SREG before and after each add/sub pair.
     BuildMI(MBB, II, dl, TII.get(OPEN8::INRdA), OPEN8::R0).addImm(0x3f);
 
-    MachineInstr *New = BuildMI(MBB, II, dl, TII.get(AddOpc), OPEN8::R29R28)
-                            .addReg(OPEN8::R29R28, RegState::Kill)
+    MachineInstr *New = BuildMI(MBB, II, dl, TII.get(AddOpc), OPEN8::R7R6)
+                            .addReg(OPEN8::R7R6, RegState::Kill)
                             .addImm(AddOffset);
     New->getOperand(3).setIsDead();
 
@@ -237,14 +237,14 @@ void OPEN8RegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
 
     // No need to set SREG as dead here otherwise if the next instruction is a
     // cond branch it will be using a dead register.
-    BuildMI(MBB, std::next(II), dl, TII.get(SubOpc), OPEN8::R29R28)
-        .addReg(OPEN8::R29R28, RegState::Kill)
+    BuildMI(MBB, std::next(II), dl, TII.get(SubOpc), OPEN8::R7R6)
+        .addReg(OPEN8::R7R6, RegState::Kill)
         .addImm(Offset - 63 + 1);
 
     Offset = 62;
   }
 
-  MI.getOperand(FIOperandNum).ChangeToRegister(OPEN8::R29R28, false);
+  MI.getOperand(FIOperandNum).ChangeToRegister(OPEN8::R7R6, false);
   assert(isUInt<6>(Offset) && "Offset is out of range");
   MI.getOperand(FIOperandNum + 1).ChangeToImmediate(Offset);
 }
@@ -253,7 +253,7 @@ Register OPEN8RegisterInfo::getFrameRegister(const MachineFunction &MF) const {
   const TargetFrameLowering *TFI = MF.getSubtarget().getFrameLowering();
   if (TFI->hasFP(MF)) {
     // The Y pointer register
-    return OPEN8::R28;
+    return OPEN8::R6;
   }
 
   return OPEN8::SP;

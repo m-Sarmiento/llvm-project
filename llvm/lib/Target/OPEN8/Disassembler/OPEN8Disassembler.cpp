@@ -59,18 +59,12 @@ extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeOPEN8Disassembler() {
 
 static const uint16_t GPRDecoderTable[] = {
   OPEN8::R0, OPEN8::R1, OPEN8::R2, OPEN8::R3,
-  OPEN8::R4, OPEN8::R5, OPEN8::R6, OPEN8::R7,
-  OPEN8::R8, OPEN8::R9, OPEN8::R10, OPEN8::R11,
-  OPEN8::R12, OPEN8::R13, OPEN8::R14, OPEN8::R15,
-  OPEN8::R16, OPEN8::R17, OPEN8::R18, OPEN8::R19,
-  OPEN8::R20, OPEN8::R21, OPEN8::R22, OPEN8::R23,
-  OPEN8::R24, OPEN8::R25, OPEN8::R26, OPEN8::R27,
-  OPEN8::R28, OPEN8::R29, OPEN8::R30, OPEN8::R31,
+  OPEN8::R4, OPEN8::R5, OPEN8::R6, OPEN8::R7
 };
 
 static DecodeStatus DecodeGPR8RegisterClass(MCInst &Inst, unsigned RegNo,
                                             uint64_t Address, const void *Decoder) {
-  if (RegNo > 31)
+  if (RegNo > 7)
     return MCDisassembler::Fail;
 
   unsigned Register = GPRDecoderTable[RegNo];
@@ -80,10 +74,10 @@ static DecodeStatus DecodeGPR8RegisterClass(MCInst &Inst, unsigned RegNo,
 
 static DecodeStatus DecodeLD8RegisterClass(MCInst &Inst, unsigned RegNo,
                                            uint64_t Address, const void *Decoder) {
-  if (RegNo > 15)
+  if (RegNo > 3)
     return MCDisassembler::Fail;
 
-  unsigned Register = GPRDecoderTable[RegNo+16];
+  unsigned Register = GPRDecoderTable[RegNo+4];
   Inst.addOperand(MCOperand::createReg(Register));
   return MCDisassembler::Success;
 }
@@ -180,7 +174,7 @@ static DecodeStatus decodeFLPMX(MCInst &Inst, unsigned Insn,
                                 uint64_t Address, const void *Decoder) {
   if (decodeFRd(Inst, Insn, Address, Decoder) == MCDisassembler::Fail)
     return MCDisassembler::Fail;
-  Inst.addOperand(MCOperand::createReg(OPEN8::R31R30));
+  Inst.addOperand(MCOperand::createReg(OPEN8::R5R4));
   return MCDisassembler::Success;
 }
 
