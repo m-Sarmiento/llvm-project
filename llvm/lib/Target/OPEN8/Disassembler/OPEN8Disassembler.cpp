@@ -62,6 +62,10 @@ static const uint16_t GPRDecoderTable[] = {
   OPEN8::R4, OPEN8::R5, OPEN8::R6, OPEN8::R7
 };
 
+static const unsigned DREGSRegsTable[] = {
+OPEN8::R1R0, OPEN8::R3R2, OPEN8::R5R4, OPEN8::R7R6
+};
+
 static DecodeStatus DecodeGPR8RegisterClass(MCInst &Inst, unsigned RegNo,
                                             uint64_t Address, const void *Decoder) {
   if (RegNo > 7)
@@ -88,6 +92,15 @@ static DecodeStatus DecodePTRREGSRegisterClass(MCInst &Inst, unsigned RegNo,
   assert(false && "unimplemented: PTRREGS register class");
   return MCDisassembler::Success;
 }
+
+static DecodeStatus DecodeDREGSRegisterClass(MCInst &Inst, unsigned RegNo,
+                                               uint64_t Address, const void *Decoder) {
+  if (RegNo > 7 || RegNo%2 != 0)
+    return MCDisassembler::Fail;
+  Inst.addOperand(MCOperand::createReg(DREGSRegsTable[RegNo/2]));
+  return MCDisassembler::Success;
+}
+
 
 static DecodeStatus decodeFIOARr(MCInst &Inst, unsigned Insn,
                                  uint64_t Address, const void *Decoder);
@@ -225,6 +238,20 @@ static DecodeStatus decodeFMUL2RdRr(MCInst &Inst, unsigned Insn,
   return MCDisassembler::Success;
 }
 
+static DecodeStatus readInstruction8(ArrayRef<uint8_t> Bytes, uint64_t Address,
+                                      uint64_t &Size, uint32_t &Insn) {
+
+  if (Bytes.size() < 1) {
+    Size = 0;
+    return MCDisassembler::Fail;
+  }
+
+  Size = 1;
+  Insn = (Bytes[0] << 0);
+
+  return MCDisassembler::Success;
+}
+
 static DecodeStatus readInstruction16(ArrayRef<uint8_t> Bytes, uint64_t Address,
                                       uint64_t &Size, uint32_t &Insn) {
   if (Bytes.size() < 2) {
@@ -234,6 +261,20 @@ static DecodeStatus readInstruction16(ArrayRef<uint8_t> Bytes, uint64_t Address,
 
   Size = 2;
   Insn = (Bytes[0] << 0) | (Bytes[1] << 8);
+
+  return MCDisassembler::Success;
+}
+
+static DecodeStatus readInstruction24(ArrayRef<uint8_t> Bytes, uint64_t Address,
+                                      uint64_t &Size, uint32_t &Insn) {
+
+  if (Bytes.size() < 3) {
+    Size = 0;
+    return MCDisassembler::Fail;
+  }
+
+  Size = 3;
+  Insn = (Bytes[0] << 16) | (Bytes[1] << 0) | (Bytes[2] << 8); //Probably not the best way to dissasembler 24-bit isntructions
 
   return MCDisassembler::Success;
 }
@@ -255,9 +296,11 @@ static DecodeStatus readInstruction32(ArrayRef<uint8_t> Bytes, uint64_t Address,
 static const uint8_t *getDecoderTable(uint64_t Size) {
 
   switch (Size) {
+    case 1: return DecoderTable8;
     case 2: return DecoderTable16;
+    case 3: return DecoderTable24;
     case 4: return DecoderTable32;
-    default: llvm_unreachable("instructions must be 16 or 32-bits");
+    default: llvm_unreachable("instructions must be 8,16,24 or 32-bits");
   }
 }
 
@@ -268,6 +311,20 @@ DecodeStatus OPEN8Disassembler::getInstruction(MCInst &Instr, uint64_t &Size,
   uint32_t Insn;
 
   DecodeStatus Result;
+
+  // Try decode a 8-bit instruction.
+  {
+    Result = readInstruction8(Bytes, Address, Size, Insn);
+
+    if (Result == MCDisassembler::Fail) return MCDisassembler::Fail;
+
+    // Try to auto-decode a 8-bit instruction.
+    Result = decodeInstruction(getDecoderTable(Size), Instr,
+                               Insn, Address, this, STI);
+
+    if (Result != MCDisassembler::Fail)
+      return Result;
+  }
 
   // Try decode a 16-bit instruction.
   {
@@ -283,6 +340,19 @@ DecodeStatus OPEN8Disassembler::getInstruction(MCInst &Instr, uint64_t &Size,
       return Result;
   }
 
+  // Try decode a 24-bit instruction.
+  {
+    Result = readInstruction24(Bytes, Address, Size, Insn);
+
+    if (Result == MCDisassembler::Fail) return MCDisassembler::Fail;
+
+    Result = decodeInstruction(getDecoderTable(Size), Instr, Insn,
+                               Address, this, STI);
+
+    if (Result != MCDisassembler::Fail) {
+      return Result;
+    }
+  }
   // Try decode a 32-bit instruction.
   {
     Result = readInstruction32(Bytes, Address, Size, Insn);

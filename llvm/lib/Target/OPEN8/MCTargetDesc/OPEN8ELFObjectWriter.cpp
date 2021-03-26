@@ -73,20 +73,14 @@ unsigned OPEN8ELFObjectWriter::getRelocType(MCContext &Ctx,
     case MCSymbolRefExpr::VK_None:
       return ELF::R_OPEN8_16;
     case MCSymbolRefExpr::VK_OPEN8_NONE:
-    case MCSymbolRefExpr::VK_OPEN8_PM://
-      return ELF::R_OPEN8_16;
     case MCSymbolRefExpr::VK_OPEN8_DIFF16://
       return ELF::R_OPEN8_16;
     }
   case OPEN8::fixup_32:
     return ELF::R_OPEN8_32;
-  case OPEN8::fixup_7_pcrel://
-    return ELF::R_OPEN8_PCREL;
-  case OPEN8::fixup_13_pcrel://
+  case OPEN8::fixup_8_pcrel://
     return ELF::R_OPEN8_PCREL;
   case OPEN8::fixup_16:
-    return ELF::R_OPEN8_16;
-  case OPEN8::fixup_16_pm://
     return ELF::R_OPEN8_16;
   case OPEN8::fixup_lo8_ldi:
     return ELF::R_OPEN8_LO8_LDI;

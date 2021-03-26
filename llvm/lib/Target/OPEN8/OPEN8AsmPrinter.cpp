@@ -180,16 +180,6 @@ void OPEN8AsmPrinter::emitInstruction(const MachineInstr *MI) {
 }
 
 const MCExpr *OPEN8AsmPrinter::lowerConstant(const Constant *CV) {
-  MCContext &Ctx = OutContext;
-
-  if (const GlobalValue *GV = dyn_cast<GlobalValue>(CV)) {
-    bool IsProgMem = GV->getAddressSpace() == OPEN8::ProgramMemory;
-    if (IsProgMem) {
-      const MCExpr *Expr = MCSymbolRefExpr::create(getSymbol(GV), Ctx);
-      return OPEN8MCExpr::create(OPEN8MCExpr::VK_OPEN8_PM, Expr, false, Ctx);
-    }
-  }
-
   return AsmPrinter::lowerConstant(CV);
 }
 

@@ -26,9 +26,9 @@ enum NodeType {
   /// Start the numbering where the builtin ops leave off.
   FIRST_NUMBER = ISD::BUILTIN_OP_END,
   /// Return from subroutine.
-  RET_FLAG,
+  RTS_FLAG,
   /// Return from ISR.
-  RETI_FLAG,
+  RTI_FLAG,
   /// Represents an abstract call instruction,
   /// which includes a bunch of information.
   CALL,

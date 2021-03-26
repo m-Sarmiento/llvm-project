@@ -24,11 +24,6 @@ const struct ModifierEntry {
 } ModifierNames[] = {
     {"lo8", OPEN8MCExpr::VK_OPEN8_LO8},       {"hi8", OPEN8MCExpr::VK_OPEN8_HI8},
     {"hh8", OPEN8MCExpr::VK_OPEN8_HH8}, // synonym with hlo8
-    {"hlo8", OPEN8MCExpr::VK_OPEN8_HH8},      {"hhi8", OPEN8MCExpr::VK_OPEN8_HHI8},
-
-    {"pm", OPEN8MCExpr::VK_OPEN8_PM},
-    {"pm_lo8", OPEN8MCExpr::VK_OPEN8_PM_LO8}, {"pm_hi8", OPEN8MCExpr::VK_OPEN8_PM_HI8},
-    {"pm_hh8", OPEN8MCExpr::VK_OPEN8_PM_HH8},
 
     {"lo8_gs", OPEN8MCExpr::VK_OPEN8_LO8_GS}, {"hi8_gs", OPEN8MCExpr::VK_OPEN8_HI8_GS},
     {"gs", OPEN8MCExpr::VK_OPEN8_GS},
@@ -88,9 +83,6 @@ bool OPEN8MCExpr::evaluateAsRelocatableImpl(MCValue &Result,
     MCSymbolRefExpr::VariantKind Modifier = Sym->getKind();
     if (Modifier != MCSymbolRefExpr::VK_None)
       return false;
-    if (Kind == VK_OPEN8_PM) {
-      Modifier = MCSymbolRefExpr::VK_OPEN8_PM;
-    }
 
     Sym = MCSymbolRefExpr::create(&Sym->getSymbol(), Modifier, Context);
     Result = MCValue::get(Sym, Value.getSymB(), Value.getConstant());
@@ -119,23 +111,19 @@ int64_t OPEN8MCExpr::evaluateAsInt64(int64_t Value) const {
     Value &= 0xff000000;
     Value >>= 24;
     break;
-  case OPEN8MCExpr::VK_OPEN8_PM_LO8:
   case OPEN8MCExpr::VK_OPEN8_LO8_GS:
     Value >>= 1; // Program memory addresses must always be shifted by one.
     Value &= 0xff;
     break;
-  case OPEN8MCExpr::VK_OPEN8_PM_HI8:
   case OPEN8MCExpr::VK_OPEN8_HI8_GS:
     Value >>= 1; // Program memory addresses must always be shifted by one.
     Value &= 0xff00;
     Value >>= 8;
     break;
-  case OPEN8MCExpr::VK_OPEN8_PM_HH8:
     Value >>= 1; // Program memory addresses must always be shifted by one.
     Value &= 0xff0000;
     Value >>= 16;
     break;
-  case OPEN8MCExpr::VK_OPEN8_PM:
   case OPEN8MCExpr::VK_OPEN8_GS:
     Value >>= 1; // Program memory addresses must always be shifted by one.
     break;
@@ -163,18 +151,8 @@ OPEN8::Fixups OPEN8MCExpr::getFixupKind() const {
     Kind = isNegated() ? OPEN8::fixup_ms8_ldi_neg : OPEN8::fixup_ms8_ldi;
     break;
 
-  case VK_OPEN8_PM_LO8:
-    Kind = isNegated() ? OPEN8::fixup_lo8_ldi_pm_neg : OPEN8::fixup_lo8_ldi_pm;
-    break;
-  case VK_OPEN8_PM_HI8:
-    Kind = isNegated() ? OPEN8::fixup_hi8_ldi_pm_neg : OPEN8::fixup_hi8_ldi_pm;
-    break;
-  case VK_OPEN8_PM_HH8:
-    Kind = isNegated() ? OPEN8::fixup_hh8_ldi_pm_neg : OPEN8::fixup_hh8_ldi_pm;
-    break;
-  case VK_OPEN8_PM:
   case VK_OPEN8_GS:
-    Kind = OPEN8::fixup_16_pm;
+    Kind = OPEN8::fixup_16;
     break;
   case VK_OPEN8_LO8_GS:
     Kind = OPEN8::fixup_lo8_ldi_gs;

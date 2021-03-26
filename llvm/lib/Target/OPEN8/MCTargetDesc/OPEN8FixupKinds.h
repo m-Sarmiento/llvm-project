@@ -27,23 +27,12 @@ enum Fixups {
   /// A 32-bit OPEN8 fixup.
   fixup_32 = FirstTargetFixupKind,
 
-  /// A 7-bit PC-relative fixup for the family of conditional
-  /// branches which take 7-bit targets (BRNE,BRGT,etc).
-  fixup_7_pcrel,
-  /// A 12-bit PC-relative fixup for the family of branches
-  /// which take 12-bit targets (RJMP,RCALL,etc).
-  /// \note Although the fixup is labelled as 13 bits, it
-  ///       is actually only encoded in 12. The reason for
-  ///       The nonmenclature is that OPEN8 branch targets are
-  ///       rightshifted by 1, because instructions are always
-  ///       aligned to 2 bytes, so the 0'th bit is always 0.
-  ///       This way there is 13-bits of precision.
-  fixup_13_pcrel,
+  /// A 8-bit PC-relative fixup for the family of conditional
+  /// branches which take 8-bit targets (BRNE,BRGT,etc).
+  fixup_8_pcrel,
 
   /// A 16-bit address.
   fixup_16,
-  /// A 16-bit program memory address.
-  fixup_16_pm,
 
   /// Replaces the 8-bit immediate with another value.
   fixup_ldi,
@@ -129,18 +118,6 @@ enum Fixups {
   LastTargetFixupKind,
   NumTargetFixupKinds = LastTargetFixupKind - FirstTargetFixupKind
 };
-
-namespace fixups {
-
-/// Adjusts the value of a branch target.
-/// All branch targets in OPEN8 are rightshifted by 1 to take advantage
-/// of the fact that all instructions are aligned to addresses of size
-/// 2, so bit 0 of an address is always 0. This gives us another bit
-/// of precision.
-/// \param [in,out] val The target to adjust.
-template <typename T> inline void adjustBranchTarget(T &val) { val >>= 1; }
-
-} // end of namespace fixups
 }
 } // end of namespace llvm::OPEN8
 

@@ -76,23 +76,13 @@ static void unsigned_width(unsigned Width, uint64_t Value,
 /// Adjusts the value of a branch target before fixup application.
 static void adjustBranch(unsigned Size, const MCFixup &Fixup, uint64_t &Value,
                          MCContext *Ctx = nullptr) {
-  // We have one extra bit of precision because the value is rightshifted by
-  // one.
-  unsigned_width(Size + 1, Value, std::string("branch target"), Fixup, Ctx);
-
-  // Rightshifts the value by one.
-  OPEN8::fixups::adjustBranchTarget(Value);
+  unsigned_width(Size , Value, std::string("branch target"), Fixup, Ctx);
 }
 
 /// Adjusts the value of a relative branch target before fixup application.
 static void adjustRelativeBranch(unsigned Size, const MCFixup &Fixup,
                                  uint64_t &Value, MCContext *Ctx = nullptr) {
-  // We have one extra bit of precision because the value is rightshifted by
-  // one.
-  signed_width(Size + 1, Value, std::string("branch target"), Fixup, Ctx);
-
-  // Rightshifts the value by one.
-  OPEN8::fixups::adjustBranchTarget(Value);
+  signed_width(Size, Value, std::string("branch target"), Fixup, Ctx);
 }
 
 /// 22-bit absolute fixup.
@@ -104,12 +94,7 @@ static void adjustRelativeBranch(unsigned Size, const MCFixup &Fixup,
 static void fixup_call(unsigned Size, const MCFixup &Fixup, uint64_t &Value,
                        MCContext *Ctx = nullptr) {
   adjustBranch(Size, Fixup, Value, Ctx);
-
-  auto top = Value & (0xf00000 << 6);   // the top four bits
-  auto middle = Value & (0x1ffff << 5); // the middle 13 bits
-  auto bottom = Value & 0x1f;           // end bottom 5 bits
-
-  Value = (top << 6) | (middle << 3) | (bottom << 0);
+  Value &= 0xffff;
 }
 
 /// 7-bit PC-relative fixup.
@@ -117,79 +102,12 @@ static void fixup_call(unsigned Size, const MCFixup &Fixup, uint64_t &Value,
 /// Resolves to:
 /// 0000 00kk kkkk k000
 /// Offset of 0 (so the result is left shifted by 3 bits before application).
-static void fixup_7_pcrel(unsigned Size, const MCFixup &Fixup, uint64_t &Value,
+static void fixup_8_pcrel(unsigned Size, const MCFixup &Fixup, uint64_t &Value,
                           MCContext *Ctx = nullptr) {
   adjustRelativeBranch(Size, Fixup, Value, Ctx);
 
-  // Because the value may be negative, we must mask out the sign bits
-  Value &= 0x7f;
+  Value &= 0xff;
 }
-
-/// 12-bit PC-relative fixup.
-/// Yes, the fixup is 12 bits even though the name says otherwise.
-///
-/// Resolves to:
-/// 0000 kkkk kkkk kkkk
-/// Offset of 0 (so the result isn't left-shifted before application).
-static void fixup_13_pcrel(unsigned Size, const MCFixup &Fixup, uint64_t &Value,
-                           MCContext *Ctx = nullptr) {
-  adjustRelativeBranch(Size, Fixup, Value, Ctx);
-
-  // Because the value may be negative, we must mask out the sign bits
-  Value &= 0xfff;
-}
-
-/// 6-bit fixup for the immediate operand of the STD/LDD family of
-/// instructions.
-///
-/// Resolves to:
-/// 10q0 qq10 0000 1qqq
-static void fixup_6(const MCFixup &Fixup, uint64_t &Value,
-                    MCContext *Ctx = nullptr) {
-  unsigned_width(6, Value, std::string("immediate"), Fixup, Ctx);
-
-  Value = ((Value & 0x20) << 8) | ((Value & 0x18) << 7) | (Value & 0x07);
-}
-
-/// 6-bit fixup for the immediate operand of the ADIW family of
-/// instructions.
-///
-/// Resolves to:
-/// 0000 0000 kk00 kkkk
-static void fixup_6_adiw(const MCFixup &Fixup, uint64_t &Value,
-                         MCContext *Ctx = nullptr) {
-  unsigned_width(6, Value, std::string("immediate"), Fixup, Ctx);
-
-  Value = ((Value & 0x30) << 2) | (Value & 0x0f);
-}
-
-/// 5-bit port number fixup on the SBIC family of instructions.
-///
-/// Resolves to:
-/// 0000 0000 AAAA A000
-static void fixup_port5(const MCFixup &Fixup, uint64_t &Value,
-                        MCContext *Ctx = nullptr) {
-  unsigned_width(5, Value, std::string("port number"), Fixup, Ctx);
-
-  Value &= 0x1f;
-
-  Value <<= 3;
-}
-
-/// 6-bit port number fixup on the `IN` family of instructions.
-///
-/// Resolves to:
-/// 1011 0AAd dddd AAAA
-static void fixup_port6(const MCFixup &Fixup, uint64_t &Value,
-                        MCContext *Ctx = nullptr) {
-  unsigned_width(6, Value, std::string("port number"), Fixup, Ctx);
-
-  Value = ((Value & 0x30) << 5) | (Value & 0x0f);
-}
-
-/// Adjusts a program memory address.
-/// This is a simple right-shift.
-static void pm(uint64_t &Value) { Value >>= 1; }
 
 /// Fixups relating to the LDI instruction.
 namespace ldi {
@@ -250,11 +168,8 @@ void OPEN8AsmBackend::adjustFixupValue(const MCFixup &Fixup,
   switch (Kind) {
   default:
     llvm_unreachable("unhandled fixup");
-  case OPEN8::fixup_7_pcrel:
-    adjust::fixup_7_pcrel(Size, Fixup, Value, Ctx);
-    break;
-  case OPEN8::fixup_13_pcrel:
-    adjust::fixup_13_pcrel(Size, Fixup, Value, Ctx);
+  case OPEN8::fixup_8_pcrel:
+    adjust::fixup_8_pcrel(Size, Fixup, Value, Ctx);
     break;
   case OPEN8::fixup_call:
     adjust::fixup_call(Size, Fixup, Value, Ctx);
@@ -265,23 +180,16 @@ void OPEN8AsmBackend::adjustFixupValue(const MCFixup &Fixup,
   case OPEN8::fixup_lo8_ldi:
     adjust::ldi::lo8(Size, Fixup, Value, Ctx);
     break;
-  case OPEN8::fixup_lo8_ldi_pm:
   case OPEN8::fixup_lo8_ldi_gs:
-    adjust::pm(Value);
     adjust::ldi::lo8(Size, Fixup, Value, Ctx);
     break;
   case OPEN8::fixup_hi8_ldi:
     adjust::ldi::hi8(Size, Fixup, Value, Ctx);
     break;
-  case OPEN8::fixup_hi8_ldi_pm:
   case OPEN8::fixup_hi8_ldi_gs:
-    adjust::pm(Value);
     adjust::ldi::hi8(Size, Fixup, Value, Ctx);
     break;
   case OPEN8::fixup_hh8_ldi:
-  case OPEN8::fixup_hh8_ldi_pm:
-    if (Kind == OPEN8::fixup_hh8_ldi_pm) adjust::pm(Value);
-
     adjust::ldi::hh8(Size, Fixup, Value, Ctx);
     break;
   case OPEN8::fixup_ms8_ldi:
@@ -289,23 +197,14 @@ void OPEN8AsmBackend::adjustFixupValue(const MCFixup &Fixup,
     break;
 
   case OPEN8::fixup_lo8_ldi_neg:
-  case OPEN8::fixup_lo8_ldi_pm_neg:
-    if (Kind == OPEN8::fixup_lo8_ldi_pm_neg) adjust::pm(Value);
-
     adjust::ldi::neg(Value);
     adjust::ldi::lo8(Size, Fixup, Value, Ctx);
     break;
   case OPEN8::fixup_hi8_ldi_neg:
-  case OPEN8::fixup_hi8_ldi_pm_neg:
-    if (Kind == OPEN8::fixup_hi8_ldi_pm_neg) adjust::pm(Value);
-
     adjust::ldi::neg(Value);
     adjust::ldi::hi8(Size, Fixup, Value, Ctx);
     break;
   case OPEN8::fixup_hh8_ldi_neg:
-  case OPEN8::fixup_hh8_ldi_pm_neg:
-    if (Kind == OPEN8::fixup_hh8_ldi_pm_neg) adjust::pm(Value);
-
     adjust::ldi::neg(Value);
     adjust::ldi::hh8(Size, Fixup, Value, Ctx);
     break;
@@ -317,27 +216,6 @@ void OPEN8AsmBackend::adjustFixupValue(const MCFixup &Fixup,
     adjust::unsigned_width(16, Value, std::string("port number"), Fixup, Ctx);
 
     Value &= 0xffff;
-    break;
-  case OPEN8::fixup_16_pm:
-    Value >>= 1; // Flash addresses are always shifted.
-    adjust::unsigned_width(16, Value, std::string("port number"), Fixup, Ctx);
-
-    Value &= 0xffff;
-    break;
-
-  case OPEN8::fixup_6:
-    adjust::fixup_6(Fixup, Value, Ctx);
-    break;
-  case OPEN8::fixup_6_adiw:
-    adjust::fixup_6_adiw(Fixup, Value, Ctx);
-    break;
-
-  case OPEN8::fixup_port5:
-    adjust::fixup_port5(Fixup, Value, Ctx);
-    break;
-
-  case OPEN8::fixup_port6:
-    adjust::fixup_port6(Fixup, Value, Ctx);
     break;
 
   // Fixups which do not require adjustments.
@@ -397,11 +275,9 @@ MCFixupKindInfo const &OPEN8AsmBackend::getFixupKindInfo(MCFixupKind Kind) const
       // name                    offset  bits  flags
       {"fixup_32", 0, 32, 0},
 
-      {"fixup_7_pcrel", 3, 7, MCFixupKindInfo::FKF_IsPCRel},
-      {"fixup_13_pcrel", 0, 12, MCFixupKindInfo::FKF_IsPCRel},
+      {"fixup_8_pcrel", 0, 8, MCFixupKindInfo::FKF_IsPCRel},
 
       {"fixup_16", 0, 16, 0},
-      {"fixup_16_pm", 0, 16, 0},
 
       {"fixup_ldi", 0, 8, 0},
 
@@ -423,10 +299,7 @@ MCFixupKindInfo const &OPEN8AsmBackend::getFixupKindInfo(MCFixupKind Kind) const
       {"fixup_hi8_ldi_pm_neg", 0, 8, 0},
       {"fixup_hh8_ldi_pm_neg", 0, 8, 0},
 
-      {"fixup_call", 0, 22, 0},
-
-      {"fixup_6", 0, 16, 0}, // non-contiguous
-      {"fixup_6_adiw", 0, 6, 0},
+      {"fixup_call", 0, 16, 0},
 
       {"fixup_lo8_ldi_gs", 0, 8, 0},
       {"fixup_hi8_ldi_gs", 0, 8, 0},
@@ -442,8 +315,6 @@ MCFixupKindInfo const &OPEN8AsmBackend::getFixupKindInfo(MCFixupKind Kind) const
 
       {"fixup_lds_sts_16", 0, 16, 0},
 
-      {"fixup_port6", 0, 16, 0}, // non-contiguous
-      {"fixup_port5", 3, 5, 0},
   };
 
   if (Kind < FirstTargetFixupKind)
@@ -459,7 +330,7 @@ bool OPEN8AsmBackend::writeNopData(raw_ostream &OS, uint64_t Count) const {
   // If the count is not 2-byte aligned, we must be writing data into the text
   // section (otherwise we have unaligned instructions, and thus have far
   // bigger problems), so just write zeros instead.
-  assert((Count % 2) == 0 && "NOP instructions must be 2 bytes");
+  //assert((Count % 2) == 0 && "NOP instructions must be 2 bytes");
 
   OS.write_zeros(Count);
   return true;
@@ -471,8 +342,7 @@ bool OPEN8AsmBackend::shouldForceRelocation(const MCAssembler &Asm,
   switch ((unsigned) Fixup.getKind()) {
   default: return false;
   // Fixups which should always be recorded as relocations.
-  case OPEN8::fixup_7_pcrel:
-  case OPEN8::fixup_13_pcrel:
+  case OPEN8::fixup_8_pcrel:
   case OPEN8::fixup_call:
     return true;
   }

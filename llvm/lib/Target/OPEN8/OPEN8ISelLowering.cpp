@@ -251,8 +251,8 @@ const char *OPEN8TargetLowering::getTargetNodeName(unsigned Opcode) const {
   switch (Opcode) {
   default:
     return nullptr;
-    NODE(RET_FLAG);
-    NODE(RETI_FLAG);
+    NODE(RTS_FLAG);
+    NODE(RTI_FLAG);
     NODE(CALL);
     NODE(WRAPPER);
     NODE(LSL);
@@ -1488,8 +1488,8 @@ OPEN8TargetLowering::LowerReturn(SDValue Chain, CallingConv::ID CallConv,
 
   unsigned RetOpc =
     AFI->isInterruptOrSignalHandler()
-        ? OPEN8ISD::RETI_FLAG
-        : OPEN8ISD::RET_FLAG;
+        ? OPEN8ISD::RTI_FLAG
+        : OPEN8ISD::RTS_FLAG;
 
   RetOps[0] = Chain; // Update chain.
 

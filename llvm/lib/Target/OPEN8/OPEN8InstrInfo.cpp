@@ -507,7 +507,6 @@ OPEN8InstrInfo::getBranchDestBlock(const MachineInstr &MI) const {
     llvm_unreachable("unexpected opcode!");
   case OPEN8::JMPk:
   case OPEN8::CALLk:
-  case OPEN8::RCALLk:
   case OPEN8::RJMPk:
   case OPEN8::BREQk:
   case OPEN8::BRNEk:
@@ -538,9 +537,8 @@ bool OPEN8InstrInfo::isBranchOffsetInRange(unsigned BranchOp,
   case OPEN8::JMPk:
   case OPEN8::CALLk:
     return true;
-  case OPEN8::RCALLk:
   case OPEN8::RJMPk:
-    return isIntN(13, BrOffset);
+    return isIntN(8, BrOffset);
   case OPEN8::BRBSsk:
   case OPEN8::BRBCsk:
   case OPEN8::BREQk:

@@ -106,7 +106,6 @@ OPEN8MCCodeEmitter::encodeRelCondBrTarget(const MCInst &MI, unsigned OpNo,
   // Take the size of the current instruction away.
   // With labels, this is implicitly done.
   auto target = MO.getImm();
-  OPEN8::fixups::adjustBranchTarget(target);
   return target;
 }
 
@@ -216,7 +215,6 @@ unsigned OPEN8MCCodeEmitter::encodeCallTarget(const MCInst &MI, unsigned OpNo,
   assert(MO.isImm());
 
   auto Target = MO.getImm();
-  OPEN8::fixups::adjustBranchTarget(Target);
   return Target;
 }
 

@@ -31,9 +31,9 @@ def SDT_OPEN8SelectCC : SDTypeProfile<1, 3, [SDTCisSameAs<0, 1>,
 // OPEN8 Specific Node Definitions
 //===----------------------------------------------------------------------===//
 
-def OPEN8retflag : SDNode<"OPEN8ISD::RET_FLAG", SDTNone,
+def OPEN8rtsflag : SDNode<"OPEN8ISD::RTS_FLAG", SDTNone,
                         [SDNPHasChain, SDNPOptInGlue, SDNPVariadic]>;
-def OPEN8retiflag : SDNode<"OPEN8ISD::RETI_FLAG", SDTNone,
+def OPEN8rtiflag : SDNode<"OPEN8ISD::RTI_FLAG", SDTNone,
                          [SDNPHasChain, SDNPOptInGlue, SDNPVariadic]>;
 
 def OPEN8callseq_start : SDNode<"ISD::CALLSEQ_START", SDT_OPEN8CallSeqStart,
@@ -190,16 +190,10 @@ def memspi : Operand<iPTR>
   let MIOperandInfo = (ops GPRSP, i16imm);
 }
 
-def relbrtarget_7 : Operand<OtherVT>
+def relbrtarget_8 : Operand<OtherVT>
 {
     let PrintMethod   = "printPCRelImm";
-    let EncoderMethod = "encodeRelCondBrTarget<OPEN8::fixup_7_pcrel>";
-}
-
-def brtarget_13 : Operand<OtherVT>
-{
-    let PrintMethod   = "printPCRelImm";
-    let EncoderMethod = "encodeRelCondBrTarget<OPEN8::fixup_13_pcrel>";
+    let EncoderMethod = "encodeRelCondBrTarget<OPEN8::fixup_8_pcrel>";
 }
 
 // The target of a 22 or 16-bit call/jmp instruction.
@@ -783,9 +777,8 @@ let isBarrier = 1,
 isBranch = 1,
 isTerminator = 1 in
 {
-  def RJMPk : FBRk<0,
-                   (outs),
-                   (ins brtarget_13:$target),
+  def RJMPk : Pseudo<(outs),
+                   (ins relbrtarget_8:$target),
                    "rjmp\t$target",
                    [(br bb:$target)]>;
 
@@ -813,6 +806,13 @@ isTerminator = 1 in
                     "jmp\t$k",
                     []>,
              Requires<[HasJMPCALL]>;
+
+  def JMP : OPEN8OpSelAddr<OP_INST,
+                OP_JMP,
+                (outs),
+                (ins call_target:$addr),
+                "jmp\t$addr",
+                [(br bb:$addr)]>;
 }
 
 //===----------------------------------------------------------------------===//
@@ -820,14 +820,6 @@ isTerminator = 1 in
 //===----------------------------------------------------------------------===//
 let isCall = 1 in
 {
-  // SP is marked as a use to prevent stack-pointer assignments that appear
-  // immediately before calls from potentially appearing dead.
-  let Uses = [SP] in
-  def RCALLk : FBRk<1,
-                    (outs),
-                    (ins brtarget_13:$target),
-                    "rcall\t$target",
-                    []>;
 
   // SP is marked as a use to prevent stack-pointer assignments that appear
   // immediately before calls from potentially appearing dead.
@@ -870,17 +862,17 @@ let isTerminator = 1,
 isReturn = 1,
 isBarrier = 1 in
 {
-  def RET : F16<0b1001010100001000,
+  def RTS : F16<0b1001010100001000,
                 (outs),
                 (ins),
-                "ret",
-                [(OPEN8retflag)]>;
+                "rts",
+                [(OPEN8rtsflag)]>;
 
-  def RETI : F16<0b1001010100011000,
+  def RTI : F16<0b1001010100011000,
                  (outs),
                  (ins),
-                 "reti",
-                 [(OPEN8retiflag)]>;
+                 "rti",
+                 [(OPEN8rtiflag)]>;
 }
 
 //===----------------------------------------------------------------------===//
@@ -987,7 +979,7 @@ isTerminator = 1 in
     // Branch if `s` flag in status register is set.
     def BRBSsk : FSK<0,
                      (outs),
-                     (ins i8imm:$s, relbrtarget_7:$k),
+                     (ins i8imm:$s, relbrtarget_8:$k),
                      "brbs\t$s, $k",
                      []>;
 
@@ -995,7 +987,7 @@ isTerminator = 1 in
     // Branch if `s` flag in status register is clear.
     def BRBCsk : FSK<1,
                      (outs),
-                     (ins i8imm:$s, relbrtarget_7:$k),
+                     (ins i8imm:$s, relbrtarget_8:$k),
                      "brbc\t$s, $k",
                      []>;
   }
@@ -1004,43 +996,43 @@ isTerminator = 1 in
 
 // BRCS k
 // Branch if carry flag is set
-def : InstAlias<"brcs\t$k", (BRBSsk 0, relbrtarget_7:$k)>;
+def : InstAlias<"brcs\t$k", (BRBSsk 0, relbrtarget_8:$k)>;
 
 // BRCC k
 // Branch if carry flag is clear
-def : InstAlias<"brcc\t$k", (BRBCsk 0, relbrtarget_7:$k)>;
+def : InstAlias<"brcc\t$k", (BRBCsk 0, relbrtarget_8:$k)>;
 
 // BRHS k
 // Branch if half carry flag is set
-def : InstAlias<"brhs\t$k", (BRBSsk 5, relbrtarget_7:$k)>;
+def : InstAlias<"brhs\t$k", (BRBSsk 5, relbrtarget_8:$k)>;
 
 // BRHC k
 // Branch if half carry flag is clear
-def : InstAlias<"brhc\t$k", (BRBCsk 5, relbrtarget_7:$k)>;
+def : InstAlias<"brhc\t$k", (BRBCsk 5, relbrtarget_8:$k)>;
 
 // BRTS k
 // Branch if the T flag is set
-def : InstAlias<"brts\t$k", (BRBSsk 6, relbrtarget_7:$k)>;
+def : InstAlias<"brts\t$k", (BRBSsk 6, relbrtarget_8:$k)>;
 
 // BRTC k
 // Branch if the T flag is clear
-def : InstAlias<"brtc\t$k", (BRBCsk 6, relbrtarget_7:$k)>;
+def : InstAlias<"brtc\t$k", (BRBCsk 6, relbrtarget_8:$k)>;
 
 // BRVS k
 // Branch if the overflow flag is set
-def : InstAlias<"brvs\t$k", (BRBSsk 3, relbrtarget_7:$k)>;
+def : InstAlias<"brvs\t$k", (BRBSsk 3, relbrtarget_8:$k)>;
 
 // BRVC k
 // Branch if the overflow flag is clear
-def : InstAlias<"brvc\t$k", (BRBCsk 3, relbrtarget_7:$k)>;
+def : InstAlias<"brvc\t$k", (BRBCsk 3, relbrtarget_8:$k)>;
 
 // BRIE k
 // Branch if the global interrupt flag is enabled
-def : InstAlias<"brie\t$k", (BRBSsk 7, relbrtarget_7:$k)>;
+def : InstAlias<"brie\t$k", (BRBSsk 7, relbrtarget_8:$k)>;
 
 // BRID k
 // Branch if the global interrupt flag is disabled
-def : InstAlias<"brid\t$k", (BRBCsk 7, relbrtarget_7:$k)>;
+def : InstAlias<"brid\t$k", (BRBCsk 7, relbrtarget_8:$k)>;
 
 //===----------------------------------------------------------------------===//
 // PC-relative conditional branches
@@ -1054,14 +1046,14 @@ Uses = [SREG] in
   def BREQk : FBRsk<0,
                     0b001,
                     (outs),
-                    (ins relbrtarget_7:$target),
+                    (ins relbrtarget_8:$target),
                     "breq\t$target",
                     [(OPEN8brcond bb:$target, OPEN8_COND_EQ)]>;
 
   def BRNEk : FBRsk<1,
                     0b001,
                     (outs),
-                    (ins relbrtarget_7:$target),
+                    (ins relbrtarget_8:$target),
                     "brne\t$target",
                     [(OPEN8brcond bb:$target, OPEN8_COND_NE)]>;
 
@@ -1069,42 +1061,42 @@ Uses = [SREG] in
   def BRSHk : FBRsk<1,
                     0b000,
                     (outs),
-                    (ins relbrtarget_7:$target),
+                    (ins relbrtarget_8:$target),
                     "brsh\t$target",
                     [(OPEN8brcond bb:$target, OPEN8_COND_SH)]>;
 
   def BRLOk : FBRsk<0,
                     0b000,
                     (outs),
-                    (ins relbrtarget_7:$target),
+                    (ins relbrtarget_8:$target),
                     "brlo\t$target",
                     [(OPEN8brcond bb:$target, OPEN8_COND_LO)]>;
 
   def BRMIk : FBRsk<0,
                     0b010,
                     (outs),
-                    (ins relbrtarget_7:$target),
+                    (ins relbrtarget_8:$target),
                     "brmi\t$target",
                     [(OPEN8brcond bb:$target, OPEN8_COND_MI)]>;
 
   def BRPLk : FBRsk<1,
                     0b010,
                     (outs),
-                    (ins relbrtarget_7:$target),
+                    (ins relbrtarget_8:$target),
                     "brpl\t$target",
                     [(OPEN8brcond bb:$target, OPEN8_COND_PL)]>;
 
   def BRGEk : FBRsk<1,
                     0b100,
                     (outs),
-                    (ins relbrtarget_7:$target),
+                    (ins relbrtarget_8:$target),
                     "brge\t$target",
                     [(OPEN8brcond bb:$target, OPEN8_COND_GE)]>;
 
   def BRLTk : FBRsk<0,
                     0b100,
                     (outs),
-                    (ins relbrtarget_7:$target),
+                    (ins relbrtarget_8:$target),
                     "brlt\t$target",
                     [(OPEN8brcond bb:$target, OPEN8_COND_LT)]>;
 }
@@ -1837,9 +1829,9 @@ def CLR : InstAlias<"clr\t$rd", (EORRdRr GPR8:$rd, GPR8:$rd)>;
 // Alias for ADD Rd, Rd
 // --------------
 // Logical shift left one bit.
-def LSL : InstAlias<"lsl\t$rd", (ADDRdRr GPR8:$rd, GPR8:$rd)>;
+def LSL1 : InstAlias<"lsl\t$rd", (ADDRdRr GPR8:$rd, GPR8:$rd)>;
 
-def ROL : InstAlias<"rol\t$rd", (ADCRdRr GPR8:$rd, GPR8:$rd)>;
+def ROL1 : InstAlias<"rol\t$rd", (ADCRdRr GPR8:$rd, GPR8:$rd)>;
 
 // SER Rd
 // Alias for LDI Rd, 0xff
@@ -2182,3 +2174,206 @@ def : Pat<(OPEN8tst i8:$rd),
 def : Pat<(OPEN8lsl i8:$rd),
           (ADDRdRr GPR8:$rd, GPR8:$rd)>;
 
+//OPEN8 INSTRUCTIONS
+let Constraints = "$src = $rn",
+Defs = [SREG] in
+{
+  //===----------------------------------------------------------------------===//
+  // Increment and Decrement
+  //===----------------------------------------------------------------------===//
+  def INC : OPEN8OpReg<OP_INC,
+                     (outs GPR8:$rn),
+                     (ins GPR8:$src),
+                     "inc\t$rn",
+                     [(set i8:$rn,(add i8:$src, 1)),(implicit SREG)]>;
+
+  def DEC : OPEN8OpReg<OP_DEC,
+                      (outs GPR8:$rn),
+                      (ins GPR8:$src),
+                      "dec\t$rn",
+                      [(set i8:$rn,(add i8:$src, -1)),(implicit SREG)]>; 
+
+  def ROL : OPEN8OpReg<OP_ROL,
+                     (outs GPR8:$rn),
+                     (ins GPR8:$src),
+                     "rol\t$rn",
+                     [(set i8:$rn, (OPEN8rol i8:$src)), (implicit SREG)]>;  
+
+  def ROR : OPEN8OpReg<OP_ROR,
+                     (outs GPR8:$rn),
+                     (ins GPR8:$src),
+                     "ror\t$rn",
+                     [(set i8:$rn, (OPEN8ror i8:$src)), (implicit SREG)]>; 
+
+}
+
+let Defs = [R0, SREG] in
+{
+  def ADC : OPEN8OpReg<OP_ADC,
+                     (outs),
+                     (ins GPR8:$rn),
+                     "adc\t$rn",
+                     [(set R0,(adde i8:$rn, R0)),(implicit SREG)]>;
+
+def TX0 : OPEN8OpReg<OP_TX0,
+                     (outs),
+                     (ins GPR8:$rn),
+                     "tx0\t$rn",
+                     [(set R0,(adde i8:$rn, 0)),(implicit SREG)]>;
+
+ def SBC : OPEN8OpReg<OP_SBC,
+                     (outs),
+                     (ins GPR8:$rn),
+                     "sbc\t$rn",
+                     [(set R0,(sub i8:$rn, R0)),(implicit SREG)]>; 
+
+ def ADD : OPEN8OpReg<OP_ADD,
+                     (outs),
+                     (ins GPR8:$rn),
+                     "add\t$rn",
+                     [(set R0,(add i8:$rn, R0)),(implicit SREG)]>; 
+
+ def T0X : OPEN8OpReg<OP_T0X,
+                     (outs),
+                     (ins GPR8:$rn),
+                     "t0x\t$rn",
+                     [(set i8:$rn,(add R0, 0)),(implicit SREG)]>; 
+
+  def CMP : OPEN8OpReg<OP_CMP,
+                     (outs),
+                     (ins GPR8:$rn),
+                     "cmp\t$rn",
+                     [(OPEN8cmp R0, i8:$rn), (implicit SREG)]>; 
+
+  def OR : OPEN8OpReg<OP_OR,
+                     (outs),
+                     (ins GPR8:$rn),
+                     "or\t$rn",
+                     [(set R0,(or i8:$rn, R0)),(implicit SREG)]>; 
+
+  def AND : OPEN8OpReg<OP_AND,
+                     (outs),
+                     (ins GPR8:$rn),
+                     "and\t$rn",
+                     [(set R0,(and i8:$rn, R0)),(implicit SREG)]>; 
+
+  def XOR : OPEN8OpReg<OP_XOR,
+                     (outs),
+                     (ins GPR8:$rn),
+                     "xor\t$rn",
+                     [(set R0,(xor i8:$rn, R0)),(implicit SREG)]>; 
+                     
+}
+
+
+
+
+  def BTT : OPEN8OpN<OP_BTT,
+                (outs),
+                (ins i8imm:$n),
+                "btt\t$n",
+                []>;
+
+  def DBNZ : OPEN8OpRegOff<OP_DBNZ,
+                     (outs),
+                     (ins GPR8:$rn, i8imm:$offset),
+                     "dbnz\t$rn, $offset",
+                     []>; 
+
+  def INT : OPEN8OpN<OP_INT,
+                (outs),
+                (ins i8imm:$n),
+                "int\t$n",
+                []>;
+
+  def MUL : OPEN8OpReg<OP_MUL,
+                     (outs),
+                     (ins GPR8:$rn),
+                     "mul\t$rn",
+                     []>; 
+
+  def RSP : OPEN8OpSel<OP_INST,
+                OP_RSP,
+                (outs),
+                (ins),
+                "rsp",
+                []>;
+
+  def SMSK : OPEN8OpSel<OP_INST,
+                OP_SMSK,
+                (outs),
+                (ins),
+                "smsk",
+                []>;
+
+  def GMSK : OPEN8OpSel<OP_INST,
+                OP_GMSK,
+                (outs),
+                (ins),
+                "gmsk",
+                []>;
+
+  def UPP : OPEN8OpReg<OP_UPP,
+                     (outs),
+                     (ins DREGS:$rn),
+                     "upp\t$rn",
+                     [(set R1R0,(add R1R0, i16:$rn)),(implicit SREG)]>; 
+
+  def STX : OPEN8OpRegX<0,OP_STX,
+                     (outs),
+                     (ins DREGS:$rn),
+                     "stx\t$rn",
+                     []>; 
+
+  def STXinc : OPEN8OpRegX<1,OP_STX,
+                     (outs),
+                     (ins DREGS:$rn),
+                     !strconcat("stx\t$rn","++"),
+                     []>;  //TODO: add to disassembler 
+  
+
+  def LDX : OPEN8OpRegX<0,OP_LDX,
+                     (outs),
+                     (ins DREGS:$rn),
+                     "ldx\t$rn",
+                     []>; 
+
+  def LDXinc : OPEN8OpRegX<1,OP_LDX,
+                     (outs),
+                     (ins DREGS:$rn),
+                     !strconcat("ldx\t$rn","++"),
+                     []>;  //TODO: add to disassembler 
+
+  def JMPZ : Pseudo<(outs),
+                         (ins call_target:$addr),
+                         "jmpz\t$addr",
+                         []>;
+
+  def JMPNZ : Pseudo<(outs),
+                         (ins call_target:$addr),
+                         "jmpnz\t$addr",
+                         []>;
+  
+  def JMPLZ : Pseudo<(outs),
+                         (ins call_target:$addr),
+                         "jmplz\t$addr",
+                         []>;
+
+  def JMPGEZ : Pseudo<(outs),
+                         (ins call_target:$addr),
+                         "jmpgez\t$addr",
+                         []>;
+
+  def JMPC : Pseudo<(outs),
+                         (ins call_target:$addr),
+                         "jmpc\t$addr",
+                         []>;
+  
+  def JMPNC : Pseudo<(outs),
+                         (ins call_target:$addr),
+                         "jmpnc\t$addr",
+                         []>;
+                         
+//def : InstAlias<"nop", (BRK)>;
+
+//def CLR : InstAlias<"clr", (XOR R0)>;

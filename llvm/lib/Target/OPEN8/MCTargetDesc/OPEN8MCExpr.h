@@ -27,11 +27,6 @@ public:
     VK_OPEN8_HH8,  ///< Corresponds to `hlo8() and hh8()`.
     VK_OPEN8_HHI8, ///< Corresponds to `hhi8()`.
 
-    VK_OPEN8_PM,     ///< Corresponds to `pm()`, reference to program memory.
-    VK_OPEN8_PM_LO8, ///< Corresponds to `pm_lo8()`.
-    VK_OPEN8_PM_HI8, ///< Corresponds to `pm_hi8()`.
-    VK_OPEN8_PM_HH8, ///< Corresponds to `pm_hh8()`.
-
     VK_OPEN8_LO8_GS, ///< Corresponds to `lo8(gs())`.
     VK_OPEN8_HI8_GS, ///< Corresponds to `hi8(gs())`.
     VK_OPEN8_GS, ///< Corresponds to `gs()`.
