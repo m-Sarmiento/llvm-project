@@ -206,7 +206,7 @@ def call_target : Operand<iPTR>
 // A 16-bit address (which can lead to an R_OPEN8_16 relocation).
 def imm16 : Operand<i16>
 {
-    let EncoderMethod = "encodeImm<OPEN8::fixup_16, 2>";
+    let EncoderMethod = "encodeImm<OPEN8::fixup_16, 0>";
 }
 
 /// A 6-bit immediate used in the ADIW/SBIW instructions.
@@ -271,6 +271,9 @@ def LDDSTDPtrReg : Operand<i16>
 //===----------------------------------------------------------------------===//
 // OPEN8 predicates for subtarget features
 //===----------------------------------------------------------------------===//
+
+def HasNEW       :    Predicate<"Subtarget->hasNEW()">,
+                         AssemblerPredicate<(all_of FeatureNEW)>;
 
 def HasSRAM       :    Predicate<"Subtarget->hasSRAM()">,
                          AssemblerPredicate<(all_of FeatureSRAM)>;

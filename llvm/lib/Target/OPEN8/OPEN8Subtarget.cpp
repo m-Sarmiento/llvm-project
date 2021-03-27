@@ -32,7 +32,7 @@ OPEN8Subtarget::OPEN8Subtarget(const Triple &TT, const std::string &CPU,
     : OPEN8GenSubtargetInfo(TT, CPU, /*TuneCPU*/ CPU, FS), ELFArch(0),
 
       // Subtarget features
-      m_hasSRAM(false), m_hasJMPCALL(false), m_hasIJMPCALL(false),
+      m_hasNEW(false), m_hasSRAM(false), m_hasJMPCALL(false), m_hasIJMPCALL(false),
       m_hasEIJMPCALL(false), m_hasADDSUBIW(false), m_hasSmallStack(false),
       m_hasMOVW(false), m_hasLPM(false), m_hasLPMX(false), m_hasELPM(false),
       m_hasELPMX(false), m_hasSPM(false), m_hasSPMX(false), m_hasDES(false),

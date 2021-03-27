@@ -94,18 +94,6 @@ unsigned OPEN8ELFObjectWriter::getRelocType(MCContext &Ctx,
     return ELF::R_OPEN8_HI8_LDI_NEG;
   case OPEN8::fixup_hh8_ldi_neg://
     return ELF::R_OPEN8_HI8_LDI_NEG;
-  case OPEN8::fixup_lo8_ldi_pm://
-    return ELF::R_OPEN8_LO8_LDI;
-  case OPEN8::fixup_hi8_ldi_pm://
-    return ELF::R_OPEN8_HI8_LDI;
-  case OPEN8::fixup_hh8_ldi_pm://
-    return ELF::R_OPEN8_HI8_LDI;
-  case OPEN8::fixup_lo8_ldi_pm_neg://
-    return ELF::R_OPEN8_LO8_LDI_NEG;
-  case OPEN8::fixup_hi8_ldi_pm_neg://
-    return ELF::R_OPEN8_HI8_LDI_NEG;
-  case OPEN8::fixup_hh8_ldi_pm_neg://
-    return ELF::R_OPEN8_HI8_LDI_NEG;
   case OPEN8::fixup_call:
     return ELF::R_OPEN8_CALL;
   case OPEN8::fixup_ldi:

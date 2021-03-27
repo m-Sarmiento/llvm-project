@@ -24,7 +24,6 @@ const struct ModifierEntry {
 } ModifierNames[] = {
     {"lo8", OPEN8MCExpr::VK_OPEN8_LO8},       {"hi8", OPEN8MCExpr::VK_OPEN8_HI8},
     {"hh8", OPEN8MCExpr::VK_OPEN8_HH8}, // synonym with hlo8
-
     {"lo8_gs", OPEN8MCExpr::VK_OPEN8_LO8_GS}, {"hi8_gs", OPEN8MCExpr::VK_OPEN8_HI8_GS},
     {"gs", OPEN8MCExpr::VK_OPEN8_GS},
 };

@@ -115,8 +115,6 @@ namespace ldi {
 /// Adjusts a value to fix up the immediate of an `LDI Rd, K` instruction.
 ///
 /// Resolves to:
-/// 0000 KKKK 0000 KKKK
-/// Offset of 0 (so the result isn't left-shifted before application).
 static void fixup(unsigned Size, const MCFixup &Fixup, uint64_t &Value,
                   MCContext *Ctx = nullptr) {
   uint64_t upper = Value & 0xf0;
@@ -290,14 +288,6 @@ MCFixupKindInfo const &OPEN8AsmBackend::getFixupKindInfo(MCFixupKind Kind) const
       {"fixup_hi8_ldi_neg", 0, 8, 0},
       {"fixup_hh8_ldi_neg", 0, 8, 0},
       {"fixup_ms8_ldi_neg", 0, 8, 0},
-
-      {"fixup_lo8_ldi_pm", 0, 8, 0},
-      {"fixup_hi8_ldi_pm", 0, 8, 0},
-      {"fixup_hh8_ldi_pm", 0, 8, 0},
-
-      {"fixup_lo8_ldi_pm_neg", 0, 8, 0},
-      {"fixup_hi8_ldi_pm_neg", 0, 8, 0},
-      {"fixup_hh8_ldi_pm_neg", 0, 8, 0},
 
       {"fixup_call", 0, 16, 0},
 

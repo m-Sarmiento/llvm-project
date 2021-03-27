@@ -448,6 +448,12 @@ SDValue OPEN8TargetLowering::LowerDivRem(SDValue Op, SelectionDAG &DAG) const {
   case MVT::i32:
     LC = IsSigned ? RTLIB::SDIVREM_I32 : RTLIB::UDIVREM_I32;
     break;
+  case MVT::i64:
+    LC = IsSigned ? RTLIB::SDIVREM_I64 : RTLIB::UDIVREM_I64;
+    break;
+  case MVT::i128:
+    LC = IsSigned ? RTLIB::SDIVREM_I128 : RTLIB::UDIVREM_I128;
+    break;
   }
 
   SDValue InChain = DAG.getEntryNode();

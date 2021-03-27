@@ -53,6 +53,7 @@ public:
 
   // Subtarget feature getters.
   // See OPEN8.td for details.
+  bool hasNEW() const { return m_hasNEW; }
   bool hasSRAM() const { return m_hasSRAM; }
   bool hasJMPCALL() const { return m_hasJMPCALL; }
   bool hasIJMPCALL() const { return m_hasIJMPCALL; }
@@ -90,6 +91,7 @@ private:
 
   // Subtarget feature settings
   // See OPEN8.td for details.
+  bool m_hasNEW;
   bool m_hasSRAM;
   bool m_hasJMPCALL;
   bool m_hasIJMPCALL;
