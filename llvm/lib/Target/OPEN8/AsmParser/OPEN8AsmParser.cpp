@@ -624,7 +624,7 @@ bool OPEN8AsmParser::ParseInstruction(ParseInstructionInfo &Info,
 
     first = false;
 
-    auto MatchResult = MatchOperandParserImpl(Operands, Mnemonic);
+    /*auto MatchResult = MatchOperandParserImpl(Operands, Mnemonic);
 
     if (MatchResult == MatchOperand_Success) {
       continue;
@@ -635,7 +635,7 @@ bool OPEN8AsmParser::ParseInstruction(ParseInstructionInfo &Info,
       Parser.eatToEndOfStatement();
 
       return Error(Loc, "failed to parse register and immediate pair");
-    }
+    }*/ //TODO: comented because failed to compile
 
     if (parseOperand(Operands)) {
       SMLoc Loc = getLexer().getLoc();

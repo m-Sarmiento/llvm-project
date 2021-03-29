@@ -82,7 +82,7 @@ void OPEN8InstrInfo::copyPhysReg(MachineBasicBlock &MBB,
 unsigned OPEN8InstrInfo::isLoadFromStackSlot(const MachineInstr &MI,
                                            int &FrameIndex) const {
   switch (MI.getOpcode()) {
-  case OPEN8::LDDRdPtrQ:
+  case OPEN8::LDDRdQ:
   case OPEN8::LDDWRdYQ: { //:FIXME: remove this once PR13375 gets fixed
     if (MI.getOperand(1).isFI() && MI.getOperand(2).isImm() &&
         MI.getOperand(2).getImm() == 0) {
@@ -101,8 +101,8 @@ unsigned OPEN8InstrInfo::isLoadFromStackSlot(const MachineInstr &MI,
 unsigned OPEN8InstrInfo::isStoreToStackSlot(const MachineInstr &MI,
                                           int &FrameIndex) const {
   switch (MI.getOpcode()) {
-  case OPEN8::STDPtrQRr:
-  case OPEN8::STDWPtrQRr: {
+  case OPEN8::STDQRr:
+  case OPEN8::STDWQRr: {
     if (MI.getOperand(0).isFI() && MI.getOperand(1).isImm() &&
         MI.getOperand(1).getImm() == 0) {
       FrameIndex = MI.getOperand(0).getIndex();
@@ -142,9 +142,9 @@ void OPEN8InstrInfo::storeRegToStackSlot(MachineBasicBlock &MBB,
 
   unsigned Opcode = 0;
   if (TRI->isTypeLegalForClass(*RC, MVT::i8)) {
-    Opcode = OPEN8::STDPtrQRr;
+    Opcode = OPEN8::STDQRr;
   } else if (TRI->isTypeLegalForClass(*RC, MVT::i16)) {
-    Opcode = OPEN8::STDWPtrQRr;
+    Opcode = OPEN8::STDWQRr;
   } else {
     llvm_unreachable("Cannot store this register into a stack slot!");
   }
@@ -176,9 +176,9 @@ void OPEN8InstrInfo::loadRegFromStackSlot(MachineBasicBlock &MBB,
 
   unsigned Opcode = 0;
   if (TRI->isTypeLegalForClass(*RC, MVT::i8)) {
-    Opcode = OPEN8::LDDRdPtrQ;
+    Opcode = OPEN8::LDDRdQ;
   } else if (TRI->isTypeLegalForClass(*RC, MVT::i16)) {
-    // Opcode = OPEN8::LDDWRdPtrQ;
+    // Opcode = OPEN8::LDDWRdQ;
     //:FIXME: remove this once PR13375 gets fixed
     Opcode = OPEN8::LDDWRdYQ;
   } else {
@@ -196,21 +196,21 @@ const MCInstrDesc &OPEN8InstrInfo::getBrCond(OPEN8CC::CondCodes CC) const {
   default:
     llvm_unreachable("Unknown condition code!");
   case OPEN8CC::COND_EQ:
-    return get(OPEN8::BREQk);
+    return get(OPEN8::BRZ);
   case OPEN8CC::COND_NE:
-    return get(OPEN8::BRNEk);
-  case OPEN8CC::COND_GE:
-    return get(OPEN8::BRGEk);
+    return get(OPEN8::BRNZ);
+  case OPEN8CC::COND_GE: //TODO: open8 dont support signed branch
+    return get(OPEN8::BRGE);
   case OPEN8CC::COND_LT:
-    return get(OPEN8::BRLTk);
+    return get(OPEN8::BRLT);
   case OPEN8CC::COND_SH:
-    return get(OPEN8::BRSHk);
+    return get(OPEN8::BRNC);
   case OPEN8CC::COND_LO:
-    return get(OPEN8::BRLOk);
+    return get(OPEN8::BRC);
   case OPEN8CC::COND_MI:
-    return get(OPEN8::BRMIk);
+    return get(OPEN8::BRLZ);
   case OPEN8CC::COND_PL:
-    return get(OPEN8::BRPLk);
+    return get(OPEN8::BRGEZ);
   }
 }
 
@@ -218,21 +218,21 @@ OPEN8CC::CondCodes OPEN8InstrInfo::getCondFromBranchOpc(unsigned Opc) const {
   switch (Opc) {
   default:
     return OPEN8CC::COND_INVALID;
-  case OPEN8::BREQk:
+  case OPEN8::BRZ:
     return OPEN8CC::COND_EQ;
-  case OPEN8::BRNEk:
+  case OPEN8::BRNZ:
     return OPEN8CC::COND_NE;
-  case OPEN8::BRSHk:
+  case OPEN8::BRNC:
     return OPEN8CC::COND_SH;
-  case OPEN8::BRLOk:
+  case OPEN8::BRC:
     return OPEN8CC::COND_LO;
-  case OPEN8::BRMIk:
+  case OPEN8::BRLZ:
     return OPEN8CC::COND_MI;
-  case OPEN8::BRPLk:
+  case OPEN8::BRGEZ:
     return OPEN8CC::COND_PL;
-  case OPEN8::BRGEk:
+  case OPEN8::BRGE:
     return OPEN8CC::COND_GE;
-  case OPEN8::BRLTk:
+  case OPEN8::BRLT:
     return OPEN8CC::COND_LT;
   }
 }
@@ -290,7 +290,7 @@ bool OPEN8InstrInfo::analyzeBranch(MachineBasicBlock &MBB,
 
     // Handle unconditional branches.
     //:TODO: add here jmp
-    if (I->getOpcode() == OPEN8::RJMPk) {
+    if (I->getOpcode() == OPEN8::JMPk) {
       UnCondBrIter = I;
 
       if (!AllowModify) {
@@ -354,7 +354,7 @@ bool OPEN8InstrInfo::analyzeBranch(MachineBasicBlock &MBB,
 
         BuildMI(MBB, UnCondBrIter, MBB.findDebugLoc(I), get(JNCC))
             .addMBB(UnCondBrIter->getOperand(0).getMBB());
-        BuildMI(MBB, UnCondBrIter, MBB.findDebugLoc(I), get(OPEN8::RJMPk))
+        BuildMI(MBB, UnCondBrIter, MBB.findDebugLoc(I), get(OPEN8::JMPk))
             .addMBB(TargetBB);
 
         OldInst->eraseFromParent();
@@ -410,7 +410,7 @@ unsigned OPEN8InstrInfo::insertBranch(MachineBasicBlock &MBB,
 
   if (Cond.empty()) {
     assert(!FBB && "Unconditional branch with multiple successors!");
-    auto &MI = *BuildMI(&MBB, DL, get(OPEN8::RJMPk)).addMBB(TBB);
+    auto &MI = *BuildMI(&MBB, DL, get(OPEN8::JMPk)).addMBB(TBB);
     if (BytesAdded)
       *BytesAdded += getInstSizeInBytes(MI);
     return 1;
@@ -426,7 +426,7 @@ unsigned OPEN8InstrInfo::insertBranch(MachineBasicBlock &MBB,
 
   if (FBB) {
     // Two-way Conditional branch. Insert the second branch.
-    auto &MI = *BuildMI(&MBB, DL, get(OPEN8::RJMPk)).addMBB(FBB);
+    auto &MI = *BuildMI(&MBB, DL, get(OPEN8::JMPk)).addMBB(FBB);
     if (BytesAdded) *BytesAdded += getInstSizeInBytes(MI);
     ++Count;
   }
@@ -448,7 +448,7 @@ unsigned OPEN8InstrInfo::removeBranch(MachineBasicBlock &MBB,
     }
     //:TODO: add here the missing jmp instructions once they are implemented
     // like jmp, {e}ijmp, and other cond branches, ...
-    if (I->getOpcode() != OPEN8::RJMPk &&
+    if (I->getOpcode() != OPEN8::JMPk &&
         getCondFromBranchOpc(I->getOpcode()) == OPEN8CC::COND_INVALID) {
       break;
     }
@@ -506,25 +506,19 @@ OPEN8InstrInfo::getBranchDestBlock(const MachineInstr &MI) const {
   default:
     llvm_unreachable("unexpected opcode!");
   case OPEN8::JMPk:
-  case OPEN8::CALLk:
-  case OPEN8::RJMPk:
-  case OPEN8::BREQk:
-  case OPEN8::BRNEk:
-  case OPEN8::BRSHk:
-  case OPEN8::BRLOk:
-  case OPEN8::BRMIk:
-  case OPEN8::BRPLk:
-  case OPEN8::BRGEk:
-  case OPEN8::BRLTk:
+  case OPEN8::JSRk:
+  case OPEN8::BRZ:
+  case OPEN8::BRNZ:
+  case OPEN8::BRC:
+  case OPEN8::BRNC:
+  case OPEN8::BRLZ:
+  case OPEN8::BRGEZ:
+  case OPEN8::BRGE:
+  case OPEN8::BRLT:
     return MI.getOperand(0).getMBB();
-  case OPEN8::BRBSsk:
-  case OPEN8::BRBCsk:
+  case OPEN8::BR1:
+  case OPEN8::BR0:
     return MI.getOperand(1).getMBB();
-  case OPEN8::SBRCRrB:
-  case OPEN8::SBRSRrB:
-  case OPEN8::SBICAb:
-  case OPEN8::SBISAb:
-    llvm_unreachable("unimplemented branch instructions");
   }
 }
 
@@ -535,21 +529,18 @@ bool OPEN8InstrInfo::isBranchOffsetInRange(unsigned BranchOp,
   default:
     llvm_unreachable("unexpected opcode!");
   case OPEN8::JMPk:
-  case OPEN8::CALLk:
-    return true;
-  case OPEN8::RJMPk:
+  case OPEN8::JSRk:
+  case OPEN8::BR1:
+  case OPEN8::BR0:
+  case OPEN8::BRZ:
+  case OPEN8::BRNZ:
+  case OPEN8::BRNC:
+  case OPEN8::BRC:
+  case OPEN8::BRLZ:
+  case OPEN8::BRGEZ:
+  case OPEN8::BRGE:
+  case OPEN8::BRLT:
     return isIntN(8, BrOffset);
-  case OPEN8::BRBSsk:
-  case OPEN8::BRBCsk:
-  case OPEN8::BREQk:
-  case OPEN8::BRNEk:
-  case OPEN8::BRSHk:
-  case OPEN8::BRLOk:
-  case OPEN8::BRMIk:
-  case OPEN8::BRPLk:
-  case OPEN8::BRGEk:
-  case OPEN8::BRLTk:
-    return isIntN(7, BrOffset);
   }
 }
 

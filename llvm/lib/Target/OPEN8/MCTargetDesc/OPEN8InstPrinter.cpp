@@ -41,42 +41,33 @@ void OPEN8InstPrinter::printInst(const MCInst *MI, uint64_t Address,
   // of the form "ld reg, X+".
   // TODO: We should be able to rewrite this using TableGen data.
   switch (Opcode) {
-  case OPEN8::LDRdPtr:
-  case OPEN8::LDRdPtrPi:
-  case OPEN8::LDRdPtrPd:
-    O << "\tld\t";
+  case OPEN8::STOinc:
+    O << "\tsto\t";
     printOperand(MI, 0, O);
-    O << ", ";
-
-    if (Opcode == OPEN8::LDRdPtrPd)
-      O << '-';
-
+    O << "++, ";
     printOperand(MI, 1, O);
-
-    if (Opcode == OPEN8::LDRdPtrPi)
-      O << '+';
     break;
-  case OPEN8::STPtrRr:
-    O << "\tst\t";
+  case OPEN8::LDOinc:
+    O << "\tldo\t";
     printOperand(MI, 0, O);
-    O << ", ";
+    O << "++, ";
     printOperand(MI, 1, O);
     break;
-  case OPEN8::STPtrPiRr:
-  case OPEN8::STPtrPdRr:
-    O << "\tst\t";
-
-    if (Opcode == OPEN8::STPtrPdRr)
-      O << '-';
-
-    printOperand(MI, 1, O);
-
-    if (Opcode == OPEN8::STPtrPiRr)
-      O << '+';
-
-    O << ", ";
-    printOperand(MI, 2, O);
+  case OPEN8::STXinc:
+    O << "\tstx\t";
+    printOperand(MI, 0, O);
+    O << "++";
     break;
+  case OPEN8::LDXinc:
+    O << "\tldx\t";
+    printOperand(MI, 0, O);
+    O << "++";
+    break;
+  /*case OPEN8::BRGEZ:
+    O << "\tbrpl\t";
+    int64_t Imm = MI->getOperand(0).getImm();
+    O << Imm;
+    break;*/
   default:
     if (!printAliasInstr(MI, Address, O))
       printInstruction(MI, Address, O);
@@ -115,14 +106,7 @@ void OPEN8InstPrinter::printOperand(const MCInst *MI, unsigned OpNo,
   const MCOperand &Op = MI->getOperand(OpNo);
 
   if (Op.isReg()) {
-    /*bool isPtrReg = (MOI.RegClass == OPEN8::PTRREGSRegClassID) ||
-                    (MOI.RegClass == OPEN8::PTRDISPREGSRegClassID);
-
-    if (isPtrReg) {
-      O << getRegisterName(Op.getReg(), OPEN8::ptr);
-    } else*/ {
       O << getPrettyRegisterName(Op.getReg(), MRI);
-    }
   } else if (Op.isImm()) {
     O << formatImm(Op.getImm());
   } else {

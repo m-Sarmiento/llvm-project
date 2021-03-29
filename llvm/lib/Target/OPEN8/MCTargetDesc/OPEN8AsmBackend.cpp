@@ -97,7 +97,7 @@ static void fixup_call(unsigned Size, const MCFixup &Fixup, uint64_t &Value,
   Value &= 0xffff;
 }
 
-/// 7-bit PC-relative fixup.
+/// 8-bit PC-relative fixup.
 ///
 /// Resolves to:
 /// 0000 00kk kkkk k000

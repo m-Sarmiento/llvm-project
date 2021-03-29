@@ -48,14 +48,14 @@ unsigned OPEN8ELFObjectWriter::getRelocType(MCContext &Ctx,
       llvm_unreachable("Unsupported Modifier");
     case MCSymbolRefExpr::VK_None:
       return ELF::R_OPEN8_8;
-    case MCSymbolRefExpr::VK_OPEN8_DIFF8://
+    /*case MCSymbolRefExpr::VK_OPEN8_DIFF8://
       return ELF::R_OPEN8_8;
     case MCSymbolRefExpr::VK_OPEN8_LO8://
       return ELF::R_OPEN8_8;
     case MCSymbolRefExpr::VK_OPEN8_HI8://
       return ELF::R_OPEN8_8;
     case MCSymbolRefExpr::VK_OPEN8_HLO8://
-      return ELF::R_OPEN8_8;
+      return ELF::R_OPEN8_8;*/
     }
   case FK_Data_4:
     switch (Modifier) {
@@ -63,8 +63,8 @@ unsigned OPEN8ELFObjectWriter::getRelocType(MCContext &Ctx,
       llvm_unreachable("Unsupported Modifier");
     case MCSymbolRefExpr::VK_None:
       return ELF::R_OPEN8_32;
-    case MCSymbolRefExpr::VK_OPEN8_DIFF32://
-      return ELF::R_OPEN8_32;
+    /*case MCSymbolRefExpr::VK_OPEN8_DIFF32://
+      return ELF::R_OPEN8_32;*/
     }
   case FK_Data_2:
     switch (Modifier) {
@@ -72,9 +72,9 @@ unsigned OPEN8ELFObjectWriter::getRelocType(MCContext &Ctx,
       llvm_unreachable("Unsupported Modifier");
     case MCSymbolRefExpr::VK_None:
       return ELF::R_OPEN8_16;
-    case MCSymbolRefExpr::VK_OPEN8_NONE:
+    /*case MCSymbolRefExpr::VK_OPEN8_NONE:
     case MCSymbolRefExpr::VK_OPEN8_DIFF16://
-      return ELF::R_OPEN8_16;
+      return ELF::R_OPEN8_16;*/
     }
   case OPEN8::fixup_32:
     return ELF::R_OPEN8_32;
@@ -86,19 +86,19 @@ unsigned OPEN8ELFObjectWriter::getRelocType(MCContext &Ctx,
     return ELF::R_OPEN8_LO8_LDI;
   case OPEN8::fixup_hi8_ldi:
     return ELF::R_OPEN8_HI8_LDI;
-  case OPEN8::fixup_hh8_ldi://
-    return ELF::R_OPEN8_HI8_LDI;
+  /*case OPEN8::fixup_hh8_ldi://
+    return ELF::R_OPEN8_HI8_LDI;*/
   case OPEN8::fixup_lo8_ldi_neg:
     return ELF::R_OPEN8_LO8_LDI_NEG;
   case OPEN8::fixup_hi8_ldi_neg:
     return ELF::R_OPEN8_HI8_LDI_NEG;
-  case OPEN8::fixup_hh8_ldi_neg://
-    return ELF::R_OPEN8_HI8_LDI_NEG;
+  /*case OPEN8::fixup_hh8_ldi_neg://
+    return ELF::R_OPEN8_HI8_LDI_NEG;*/
   case OPEN8::fixup_call:
     return ELF::R_OPEN8_CALL;
   case OPEN8::fixup_ldi:
     return ELF::R_OPEN8_8;
-  case OPEN8::fixup_6:
+  /*case OPEN8::fixup_6:
     return ELF::R_OPEN8_8;
   case OPEN8::fixup_6_adiw:
     return ELF::R_OPEN8_8;
@@ -129,7 +129,7 @@ unsigned OPEN8ELFObjectWriter::getRelocType(MCContext &Ctx,
   case OPEN8::fixup_port6://
     return ELF::R_OPEN8_NONE;
   case OPEN8::fixup_port5://
-    return ELF::R_OPEN8_NONE;
+    return ELF::R_OPEN8_NONE;*/
   default:
     llvm_unreachable("invalid fixup kind!");
   }

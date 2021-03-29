@@ -100,13 +100,15 @@ OPEN8RegisterInfo::getLargestLegalSuperClass(const TargetRegisterClass *RC,
 /// Fold a frame offset shared between two add instructions into a single one.
 static void foldFrameOffset(MachineBasicBlock::iterator &II, int &Offset,
                             Register DstReg) {
-  MachineInstr &MI = *II;
+  return;
+  
+  /*MachineInstr &MI = *II;
   int Opcode = MI.getOpcode();
 
   // Don't bother trying if the next instruction is not an add or a sub.
-  if ((Opcode != OPEN8::SUBIWRdK) && (Opcode != OPEN8::ADIWRdK)) {
+  //if ((Opcode != OPEN8::SUBIWRdK) && (Opcode != OPEN8::ADIWRdK)) {
     return;
-  }
+  //}
 
   // Check that DstReg matches with next instruction, otherwise the instruction
   // is not related to stack address manipulation.
@@ -119,14 +121,11 @@ static void foldFrameOffset(MachineBasicBlock::iterator &II, int &Offset,
   case OPEN8::SUBIWRdK:
     Offset += -MI.getOperand(2).getImm();
     break;
-  case OPEN8::ADIWRdK:
-    Offset += MI.getOperand(2).getImm();
-    break;
   }
 
   // Finally remove the instruction.
   II++;
-  MI.eraseFromParent();
+  MI.eraseFromParent();*/
 }
 
 void OPEN8RegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
@@ -160,8 +159,6 @@ void OPEN8RegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
 
     assert(Offset > 0 && "Invalid offset");
 
-    // We need to materialize the offset via an add instruction.
-    unsigned Opcode;
     Register DstReg = MI.getOperand(0).getReg();
     assert(DstReg != OPEN8::R7R6 && "Dest reg cannot be the frame pointer");
 
@@ -178,74 +175,57 @@ void OPEN8RegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
     if (II != MBB.end())
       foldFrameOffset(II, Offset, DstReg);
 
-    // Select the best opcode based on DstReg and the offset size.
-    switch (DstReg) {
-    //case OPEN8::R25R24:
-    //case OPEN8::R27R26:
-    case OPEN8::R5R4: {
-      if (isUInt<6>(Offset)) {
-        Opcode = OPEN8::ADIWRdK;
-        break;
-      }
-      LLVM_FALLTHROUGH;
-    }
-    default: {
-      // This opcode will get expanded into a pair of subi/sbci.
-      Opcode = OPEN8::SUBIWRdK;
-      Offset = -Offset;
-      break;
-    }
-    }
-
-    MachineInstr *New = BuildMI(MBB, II, dl, TII.get(Opcode), DstReg)
+    Offset = -Offset;
+    MachineInstr *New = BuildMI(MBB, II, dl, TII.get(OPEN8::SUBIWRdK), DstReg)
                             .addReg(DstReg, RegState::Kill)
                             .addImm(Offset);
     New->getOperand(3).setIsDead();
+    /*BuildMI(MBB, II, dl, TII.get(OPEN8::LDIW), OPEN8::R1R0)
+                            .addImm(Offset);
 
+    MachineInstr *New = BuildMI(MBB, II, dl, TII.get(OPEN8::ADDWRdRr), DstReg)
+                            .addReg(DstReg, RegState::Kill)
+                            .addReg(OPEN8::R1R0, RegState::Kill);
+    New->getOperand(3).setIsDead();*/
     return;
   }
-
+/*
   // If the offset is too big we have to adjust and restore the frame pointer
   // to materialize a valid load/store with displacement.
   //:TODO: consider using only one adiw/sbiw chain for more than one frame index
   if (Offset > 62) {
     unsigned AddOpc = OPEN8::ADIWRdK, SubOpc = OPEN8::SBIWRdK;
     int AddOffset = Offset - 63 + 1;
-
     // For huge offsets where adiw/sbiw cannot be used use a pair of subi/sbci.
     if ((Offset - 63 + 1) > 63) {
       AddOpc = OPEN8::SUBIWRdK;
       SubOpc = OPEN8::SUBIWRdK;
       AddOffset = -AddOffset;
     }
-
     // It is possible that the spiller places this frame instruction in between
     // a compare and branch, invalidating the contents of SREG set by the
     // compare instruction because of the add/sub pairs. Conservatively save and
     // restore SREG before and after each add/sub pair.
     BuildMI(MBB, II, dl, TII.get(OPEN8::INRdA), OPEN8::R0).addImm(0x3f);
-
     MachineInstr *New = BuildMI(MBB, II, dl, TII.get(AddOpc), OPEN8::R7R6)
                             .addReg(OPEN8::R7R6, RegState::Kill)
                             .addImm(AddOffset);
     New->getOperand(3).setIsDead();
-
     // Restore SREG.
     BuildMI(MBB, std::next(II), dl, TII.get(OPEN8::OUTARr))
         .addImm(0x3f)
         .addReg(OPEN8::R0, RegState::Kill);
-
     // No need to set SREG as dead here otherwise if the next instruction is a
     // cond branch it will be using a dead register.
     BuildMI(MBB, std::next(II), dl, TII.get(SubOpc), OPEN8::R7R6)
         .addReg(OPEN8::R7R6, RegState::Kill)
         .addImm(Offset - 63 + 1);
-
     Offset = 62;
   }
+*/
 
   MI.getOperand(FIOperandNum).ChangeToRegister(OPEN8::R7R6, false);
-  assert(isUInt<6>(Offset) && "Offset is out of range");
+  assert(isUInt<8>(Offset) && "Offset is out of range");
   MI.getOperand(FIOperandNum + 1).ChangeToImmediate(Offset);
 }
 

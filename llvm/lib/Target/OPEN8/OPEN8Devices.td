@@ -9,10 +9,10 @@
 
 
 // A feature set aggregates features, grouping them. We don't want to create a
-// new member in OPEN8Subtarget (to store a value) for each set because we do not
-// care if the set is supported, only the subfeatures inside the set. We fix
-// this by simply setting the same dummy member for all feature sets, which is
-// then ignored.
+//===---------------------------------------------------------------------===//
+// OPEN8 Device Definitions
+//===---------------------------------------------------------------------===//
+
 class FeatureSet<string name, string desc, list<SubtargetFeature> i>
   : SubtargetFeature<name, "m_FeatureSetDummy", "true", desc, i>;
 
@@ -154,7 +154,7 @@ class Device<string Name, Family Fam, ELFArch Arch,
   : Processor<Name, NoItineraries, !listconcat([Fam,Arch],ExtraFeatures)>;
 
 // Generic MCUs
-// Note that several versions of GCC has strange ELF architecture
+
 // settings for backwards compatibility - see `gas/config/tc-open8.c`
 // in OPEN8 binutils. We do not replicate this.
 def : Device<"open80",      FamilyOPEN80,    ELFArchOPEN81>;

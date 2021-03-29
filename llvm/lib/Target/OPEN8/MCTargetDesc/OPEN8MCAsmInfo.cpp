@@ -23,6 +23,7 @@ OPEN8MCAsmInfo::OPEN8MCAsmInfo(const Triple &TT, const MCTargetOptions &Options)
   PrivateGlobalPrefix = ".L";
   PrivateLabelPrefix = ".L";
   UsesELFSectionDirectiveForBSS = true;
+  //UseIntegratedAssembler = true;
   SupportsDebugInformation = true;
 }
 

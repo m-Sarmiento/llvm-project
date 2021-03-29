@@ -63,7 +63,7 @@ enum Fixups {
   /// with the upper 8 bits of a negated negated 32-bit value (bits 24-31).
   fixup_ms8_ldi_neg,
 
-  /// A 22-bit fixup for the target of a `CALL k` or `JMP k` instruction.
+  /// A 16-bit fixup for the target of a `CALL k` or `JMP k` instruction.
   fixup_call,
 
   fixup_6,

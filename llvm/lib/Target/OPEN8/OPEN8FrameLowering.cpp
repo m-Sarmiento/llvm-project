@@ -60,10 +60,18 @@ void OPEN8FrameLowering::emitPrologue(MachineFunction &MF,
 
   // Interrupt handlers re-enable interrupts in function entry.
   if (AFI->isInterruptHandler()) {
-    BuildMI(MBB, MBBI, DL, TII.get(OPEN8::BSETs))
-        .addImm(0x07)
+    BuildMI(MBB, MBBI, DL, TII.get(OPEN8::STP))
+        .addImm(0x03)
         .setMIFlag(MachineInstr::FrameSetup);
   }
+
+  // Save the frame pointer if we have one.
+  //TODO: why this?
+  /*if (HasFP) {
+    BuildMI(MBB, MBBI, DL, TII.get(OPEN8::PUSHWRr))
+        .addReg(OPEN8::R7R6, RegState::Kill)
+        .setMIFlag(MachineInstr::FrameSetup);
+  }*/
 
   // Emit special prologue code to save R1, R0 and SREG in interrupt/signal
   // handlers before saving any other registers.
@@ -72,8 +80,8 @@ void OPEN8FrameLowering::emitPrologue(MachineFunction &MF,
         .addReg(OPEN8::R1R0, RegState::Kill)
         .setMIFlag(MachineInstr::FrameSetup);
 
-    BuildMI(MBB, MBBI, DL, TII.get(OPEN8::INRdA), OPEN8::R0)
-        .addImm(0x3f)
+    /*BuildMI(MBB, MBBI, DL, TII.get(OPEN8::LDARdA), OPEN8::R0)
+        .addImm(0xFA2)
         .setMIFlag(MachineInstr::FrameSetup);
     BuildMI(MBB, MBBI, DL, TII.get(OPEN8::PUSHRr))
         .addReg(OPEN8::R0, RegState::Kill)
@@ -82,7 +90,7 @@ void OPEN8FrameLowering::emitPrologue(MachineFunction &MF,
         .addReg(OPEN8::R0, RegState::Define)
         .addReg(OPEN8::R0, RegState::Kill)
         .addReg(OPEN8::R0, RegState::Kill)
-        .setMIFlag(MachineInstr::FrameSetup);
+        .setMIFlag(MachineInstr::FrameSetup);*/
   }
 
   // Early exit if the frame pointer is not needed in this function.
@@ -91,7 +99,8 @@ void OPEN8FrameLowering::emitPrologue(MachineFunction &MF,
   }
 
   const MachineFrameInfo &MFI = MF.getFrameInfo();
-  unsigned FrameSize = MFI.getStackSize() - AFI->getCalleeSavedFrameSize();
+  //TODO: rev frame size aligment
+  unsigned FrameSize = MFI.getStackSize() - AFI->getCalleeSavedFrameSize()+1;
 
   // Skip the callee-saved push instructions.
   while (
@@ -100,7 +109,7 @@ void OPEN8FrameLowering::emitPrologue(MachineFunction &MF,
     ++MBBI;
   }
 
-  // Update Y with the new base value.
+  // Update R7R6 with the new base value.
   BuildMI(MBB, MBBI, DL, TII.get(OPEN8::SPREAD), OPEN8::R7R6)
       .addReg(OPEN8::SP)
       .setMIFlag(MachineInstr::FrameSetup);
@@ -110,15 +119,14 @@ void OPEN8FrameLowering::emitPrologue(MachineFunction &MF,
        I != E; ++I) {
     I->addLiveIn(OPEN8::R7R6);
   }
-
-  if (!FrameSize) {
+  //TODO: rev bad stack aligment
+  if (!(FrameSize-1)) {
     return;
   }
 
   // Reserve the necessary frame memory by doing FP -= <size>.
-  unsigned Opcode = (isUInt<6>(FrameSize)) ? OPEN8::SBIWRdK : OPEN8::SUBIWRdK;
-
-  MachineInstr *MI = BuildMI(MBB, MBBI, DL, TII.get(Opcode), OPEN8::R7R6)
+  // TODO: rev this
+  MachineInstr *MI = BuildMI(MBB, MBBI, DL, TII.get(OPEN8::SUBIWRdK), OPEN8::R7R6)
                          .addReg(OPEN8::R7R6, RegState::Kill)
                          .addImm(FrameSize)
                          .setMIFlag(MachineInstr::FrameSetup);
@@ -131,7 +139,7 @@ void OPEN8FrameLowering::emitPrologue(MachineFunction &MF,
       .setMIFlag(MachineInstr::FrameSetup);
 }
 
-static void restoreStatusRegister(MachineFunction &MF, MachineBasicBlock &MBB) {
+/*static void restoreStatusRegister(MachineFunction &MF, MachineBasicBlock &MBB) {
   const OPEN8MachineFunctionInfo *AFI = MF.getInfo<OPEN8MachineFunctionInfo>();
 
   MachineBasicBlock::iterator MBBI = MBB.getLastNonDebugInstr();
@@ -149,7 +157,7 @@ static void restoreStatusRegister(MachineFunction &MF, MachineBasicBlock &MBB) {
         .addReg(OPEN8::R0, RegState::Kill);
     BuildMI(MBB, MBBI, DL, TII.get(OPEN8::POPWRd), OPEN8::R1R0);
   }
-}
+}*/
 
 void OPEN8FrameLowering::emitEpilogue(MachineFunction &MF,
                                     MachineBasicBlock &MBB) const {
@@ -167,13 +175,15 @@ void OPEN8FrameLowering::emitEpilogue(MachineFunction &MF,
 
   DebugLoc DL = MBBI->getDebugLoc();
   const MachineFrameInfo &MFI = MF.getFrameInfo();
-  unsigned FrameSize = MFI.getStackSize() - AFI->getCalleeSavedFrameSize();
+  //TODO: rev frazmesize aligment
+  unsigned FrameSize = MFI.getStackSize() - AFI->getCalleeSavedFrameSize()+1;
   const OPEN8Subtarget &STI = MF.getSubtarget<OPEN8Subtarget>();
   const OPEN8InstrInfo &TII = *STI.getInstrInfo();
 
   // Early exit if there is no need to restore the frame pointer.
-  if (!FrameSize) {
-    restoreStatusRegister(MF, MBB);
+  //TODO: fix framesize aligment
+  if (!FrameSize-1) {
+    //restoreStatusRegister(MF, MBB);
     return;
   }
 
@@ -188,29 +198,27 @@ void OPEN8FrameLowering::emitEpilogue(MachineFunction &MF,
 
     --MBBI;
   }
-
-  unsigned Opcode;
-
-  // Select the optimal opcode depending on how big it is.
-  if (isUInt<6>(FrameSize)) {
-    Opcode = OPEN8::ADIWRdK;
-  } else {
-    Opcode = OPEN8::SUBIWRdK;
-    FrameSize = -FrameSize;
+  // if 1, use upp fuction
+  if (FrameSize == 1){
+    BuildMI(MBB, MBBI, DL, TII.get(OPEN8::UPP))
+                         .addReg(OPEN8::R7R6, RegState::Kill);
   }
-
+  else
+  {
+    FrameSize = -FrameSize;
   // Restore the frame pointer by doing FP += <size>.
-  MachineInstr *MI = BuildMI(MBB, MBBI, DL, TII.get(Opcode), OPEN8::R7R6)
+  MachineInstr *MI = BuildMI(MBB, MBBI, DL, TII.get(OPEN8::SUBIWRdK), OPEN8::R7R6)
                          .addReg(OPEN8::R7R6, RegState::Kill)
                          .addImm(FrameSize);
   // The SREG implicit def is dead.
   MI->getOperand(3).setIsDead();
+  }
 
   // Write back R7R6 to SP and temporarily disable interrupts.
   BuildMI(MBB, MBBI, DL, TII.get(OPEN8::SPWRITE), OPEN8::SP)
       .addReg(OPEN8::R7R6, RegState::Kill);
 
-  restoreStatusRegister(MF, MBB);
+  //restoreStatusRegister(MF, MBB);
 }
 
 // Return true if the specified function should have a dedicated frame
@@ -312,11 +320,35 @@ static void fixStackStores(MachineBasicBlock &MBB,
 
     assert(MI.getOperand(0).getReg() == OPEN8::SP &&
            "Invalid register, should be SP!");
+      //TODO: rev this
+      /*if (insertPushes) {
+      // Replace this instruction with a push.
+      Register SrcReg = MI.getOperand(2).getReg();
+      bool SrcIsKill = MI.getOperand(2).isKill();
+
+      // We can't use PSHw here because when expanded the order of the new
+      // instructions are reversed from what we need. Perform the expansion now.
+      if (Opcode == OPEN8::STDWSPQRr) {
+        BuildMI(MBB, I, MI.getDebugLoc(), TII.get(OPEN8::PSH))
+            .addReg(TRI.getSubReg(SrcReg, OPEN8::sub_hi),
+                    getKillRegState(SrcIsKill));
+        BuildMI(MBB, I, MI.getDebugLoc(), TII.get(OPEN8::PSH))
+            .addReg(TRI.getSubReg(SrcReg, OPEN8::sub_lo),
+                    getKillRegState(SrcIsKill));
+      } else {
+        BuildMI(MBB, I, MI.getDebugLoc(), TII.get(OPEN8::PSH))
+            .addReg(SrcReg, getKillRegState(SrcIsKill));
+      }
+
+      MI.eraseFromParent();
+      I = NextMI;
+      continue;
+    }*/
 
     // Replace this instruction with a regular store. Use Y as the base
     // pointer since it is guaranteed to contain a copy of SP.
     unsigned STOpc =
-        (Opcode == OPEN8::STDWSPQRr) ? OPEN8::STDWPtrQRr : OPEN8::STDPtrQRr;
+        (Opcode == OPEN8::STDWSPQRr) ? OPEN8::STDWQRr : OPEN8::STDQRr;
 
     MI.setDesc(TII.get(STOpc));
     MI.getOperand(0).setReg(FP);
@@ -336,6 +368,7 @@ MachineBasicBlock::iterator OPEN8FrameLowering::eliminateCallFramePseudoInstr(
   // with real store instructions.
   if (hasReservedCallFrame(MF)) {
     fixStackStores(MBB, MI, TII, OPEN8::R7R6);
+    //fixStackStores(MBB, MI, TII, false);
     return MBB.erase(MI);
   }
 
@@ -344,7 +377,7 @@ MachineBasicBlock::iterator OPEN8FrameLowering::eliminateCallFramePseudoInstr(
   int Amount = TII.getFrameSize(*MI);
 
   // ADJCALLSTACKUP and ADJCALLSTACKDOWN are converted to adiw/subi
-  // instructions to read and write the stack pointer in I/O space.
+  // instructions to read and write the stack pointer.
   if (Amount != 0) {
     assert(getStackAlign() == Align(1) && "Unsupported stack alignment");
 
@@ -354,7 +387,7 @@ MachineBasicBlock::iterator OPEN8FrameLowering::eliminateCallFramePseudoInstr(
       // relevant values directly to the stack. However, doing that correctly
       // (in the right order, possibly skipping some empty space for undef
       // values, etc) is tricky and thus left to be optimized in the future.
-      BuildMI(MBB, MI, DL, TII.get(OPEN8::SPREAD), OPEN8::R7R6).addReg(OPEN8::SP);
+      /*BuildMI(MBB, MI, DL, TII.get(OPEN8::SPREAD), OPEN8::R7R6).addReg(OPEN8::SP);
 
       MachineInstr *New = BuildMI(MBB, MI, DL, TII.get(OPEN8::SUBIWRdK), OPEN8::R7R6)
                               .addReg(OPEN8::R7R6, RegState::Kill)
@@ -362,35 +395,28 @@ MachineBasicBlock::iterator OPEN8FrameLowering::eliminateCallFramePseudoInstr(
       New->getOperand(3).setIsDead();
 
       BuildMI(MBB, MI, DL, TII.get(OPEN8::SPWRITE), OPEN8::SP)
-          .addReg(OPEN8::R7R6);
+          .addReg(OPEN8::R7R6);*/
 
       // Make sure the remaining stack stores are converted to real store
       // instructions.
-      fixStackStores(MBB, MI, TII, OPEN8::R7R6);
+      fixStackStores(MBB, MI, TII, OPEN8::R7R6); //true
     } else {
       assert(Opcode == TII.getCallFrameDestroyOpcode());
 
       // Note that small stack changes could be implemented more efficiently
       // with a few pop instructions instead of the 8-9 instructions now
       // required.
-
-      // Select the best opcode to adjust SP based on the offset size.
-      unsigned addOpcode;
-      if (isUInt<6>(Amount)) {
-        addOpcode = OPEN8::ADIWRdK;
-      } else {
-        addOpcode = OPEN8::SUBIWRdK;
-        Amount = -Amount;
-      }
-
-      // Build the instruction sequence.
       BuildMI(MBB, MI, DL, TII.get(OPEN8::SPREAD), OPEN8::R7R6).addReg(OPEN8::SP);
-
-      MachineInstr *New = BuildMI(MBB, MI, DL, TII.get(addOpcode), OPEN8::R7R6)
+      if (Amount == 1){
+      BuildMI(MBB, MI, DL, TII.get(OPEN8::UPP))
+                         .addReg(OPEN8::R7R6, RegState::Kill);
+      } else {
+      Amount = -Amount;
+      MachineInstr *New = BuildMI(MBB, MI, DL, TII.get(OPEN8::SUBIWRdK), OPEN8::R7R6)
                               .addReg(OPEN8::R7R6, RegState::Kill)
                               .addImm(Amount);
       New->getOperand(3).setIsDead();
-
+      }
       BuildMI(MBB, MI, DL, TII.get(OPEN8::SPWRITE), OPEN8::SP)
           .addReg(OPEN8::R7R6, RegState::Kill);
     }
@@ -449,8 +475,8 @@ struct OPEN8FrameAnalyzer : public MachineFunctionPass {
       for (const MachineInstr &MI : BB) {
         int Opcode = MI.getOpcode();
 
-        if ((Opcode != OPEN8::LDDRdPtrQ) && (Opcode != OPEN8::LDDWRdPtrQ) &&
-            (Opcode != OPEN8::STDPtrQRr) && (Opcode != OPEN8::STDWPtrQRr)) {
+        if ((Opcode != OPEN8::LDDRdQ) && (Opcode != OPEN8::LDDWRdQ) &&
+            (Opcode != OPEN8::STDQRr) && (Opcode != OPEN8::STDWQRr)) {
           continue;
         }
 

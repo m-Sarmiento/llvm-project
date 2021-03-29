@@ -85,7 +85,7 @@ bool OPEN8RelaxMem::runOnBasicBlock(Block &MBB) {
 }
 
 template <>
-bool OPEN8RelaxMem::relax<OPEN8::STDWPtrQRr>(Block &MBB, BlockIt MBBI) {
+bool OPEN8RelaxMem::relax<OPEN8::STDWQRr>(Block &MBB, BlockIt MBBI) {
   MachineInstr &MI = *MBBI;
 
   MachineOperand &Ptr = MI.getOperand(0);
@@ -93,21 +93,30 @@ bool OPEN8RelaxMem::relax<OPEN8::STDWPtrQRr>(Block &MBB, BlockIt MBBI) {
   int64_t Imm = MI.getOperand(1).getImm();
 
   // We can definitely optimise this better.
-  if (Imm > 63) {
+  if (Imm > 255) {
     // Push the previous state of the pointer register.
     // This instruction must preserve the value.
     buildMI(MBB, MBBI, OPEN8::PUSHWRr)
       .addReg(Ptr.getReg());
 
     // Add the immediate to the pointer register.
-    buildMI(MBB, MBBI, OPEN8::SBCIWRdK)
+    buildMI(MBB, MBBI, OPEN8::SUBIWRdK)
       .addReg(Ptr.getReg(), RegState::Define)
       .addReg(Ptr.getReg())
       .addImm(-Imm);
+    // Add the immediate to the pointer register.
+/*    buildMI(MBB, MBBI, OPEN8::LDIWRdk)
+                            .addReg(OPEN8::R1R0)
+                            .addImm(-Imm);
+    buildMI(MBB, MBBI, OPEN8::SBCWRdRr)
+      .addReg(Ptr.getReg(), RegState::Define)
+      .addReg(Ptr.getReg())
+      .addReg(OPEN8::R1R0, RegState::Kill);
+*/
 
     // Store the value in the source register to the address
     // pointed to by the pointer register.
-    buildMI(MBB, MBBI, OPEN8::STWPtrRr)
+    buildMI(MBB, MBBI, OPEN8::STWRr)
       .addReg(Ptr.getReg())
       .addReg(Src.getReg(), getKillRegState(Src.isKill()));
 
@@ -130,7 +139,7 @@ bool OPEN8RelaxMem::runOnInstruction(Block &MBB, BlockIt MBBI) {
     return relax<Op>(MBB, MI)
 
   switch (Opcode) {
-    RELAX(OPEN8::STDWPtrQRr);
+    RELAX(OPEN8::STDWQRr);
   }
 #undef RELAX
   return false;

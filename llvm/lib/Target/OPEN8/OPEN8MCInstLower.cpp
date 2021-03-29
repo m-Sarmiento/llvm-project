@@ -42,6 +42,22 @@ MCOperand OPEN8MCInstLower::lowerSymbolOperand(const MachineOperand &MO,
     Expr = OPEN8MCExpr::create(OPEN8MCExpr::VK_OPEN8_LO8, Expr, IsNegated, Ctx);
   } else if (TF & OPEN8II::MO_HI) {
     Expr = OPEN8MCExpr::create(OPEN8MCExpr::VK_OPEN8_HI8, Expr, IsNegated, Ctx);
+/*  bool IsFunction = MO.isGlobal() && isa<Function>(MO.getGlobal());
+  if (TF & OPEN8II::MO_LO) {
+    if (IsFunction) {
+      // N.B. Should we use _GS fixups here to cope with >128k progmem?
+      Expr = OPEN8MCExpr::create(OPEN8MCExpr::VK_OPEN8_PM_LO8, Expr, IsNegated, Ctx);
+    } else {
+      Expr = OPEN8MCExpr::create(OPEN8MCExpr::VK_OPEN8_LO8, Expr, IsNegated, Ctx);
+    }
+  } else if (TF & OPEN8II::MO_HI) {
+    if (IsFunction) {
+      // N.B. Should we use _GS fixups here to cope with >128k progmem?
+      Expr = OPEN8MCExpr::create(OPEN8MCExpr::VK_OPEN8_PM_HI8, Expr, IsNegated, Ctx);
+    } else {
+      Expr = OPEN8MCExpr::create(OPEN8MCExpr::VK_OPEN8_HI8, Expr, IsNegated, Ctx);
+    }*/
+
   } else if (TF != 0) {
     llvm_unreachable("Unknown target flag on symbol operand");
   }

@@ -51,11 +51,7 @@ private:
   const TargetInstrInfo *TII;
 
   /// The register to be used for temporary storage.
-  const Register SCRATCH_REGISTER = OPEN8::R0;
-  /// The register that will always contain zero.
-  const Register ZERO_REGISTER = OPEN8::R1;
-  /// The IO address of the status register.
-  const unsigned SREG_ADDR = 0x3f;
+  const unsigned SCRATCH_REGISTER = OPEN8::R0;
 
   bool expandMBB(Block &MBB);
   bool expandMI(Block &MBB, BlockIt MBBI);
@@ -75,11 +71,11 @@ private:
   bool expandArith(unsigned OpLo, unsigned OpHi, Block &MBB, BlockIt MBBI);
   bool expandLogic(unsigned Op, Block &MBB, BlockIt MBBI);
   bool expandLogicImm(unsigned Op, Block &MBB, BlockIt MBBI);
-  bool isLogicImmOpRedundant(unsigned Op, unsigned ImmVal) const;
+  //bool isLogicImmOpRedundant(unsigned Op, unsigned ImmVal) const;
 
   template<typename Func>
   bool expandAtomic(Block &MBB, BlockIt MBBI, Func f);
-
+/*
   template<typename Func>
   bool expandAtomicBinaryOp(unsigned Opcode, Block &MBB, BlockIt MBBI, Func f);
 
@@ -89,7 +85,7 @@ private:
                                 unsigned ArithOpcode,
                                 Block &MBB,
                                 BlockIt MBBI);
-
+*/
   /// Scavenges a free GPR8 register for use.
   Register scavengeGPR8(MachineInstr &MI);
 };
@@ -204,57 +200,6 @@ expandLogic(unsigned Op, Block &MBB, BlockIt MBBI) {
   return true;
 }
 
-bool OPEN8ExpandPseudo::
-  isLogicImmOpRedundant(unsigned Op, unsigned ImmVal) const {
-
-  // ANDI Rd, 0xff is redundant.
-  if (Op == OPEN8::ANDIRdK && ImmVal == 0xff)
-    return true;
-
-  // ORI Rd, 0x0 is redundant.
-  if (Op == OPEN8::ORIRdK && ImmVal == 0x0)
-    return true;
-
-  return false;
-}
-
-bool OPEN8ExpandPseudo::
-expandLogicImm(unsigned Op, Block &MBB, BlockIt MBBI) {
-  MachineInstr &MI = *MBBI;
-  Register DstLoReg, DstHiReg;
-  Register DstReg = MI.getOperand(0).getReg();
-  bool DstIsDead = MI.getOperand(0).isDead();
-  bool SrcIsKill = MI.getOperand(1).isKill();
-  bool ImpIsDead = MI.getOperand(3).isDead();
-  unsigned Imm = MI.getOperand(2).getImm();
-  unsigned Lo8 = Imm & 0xff;
-  unsigned Hi8 = (Imm >> 8) & 0xff;
-  TRI->splitReg(DstReg, DstLoReg, DstHiReg);
-
-  if (!isLogicImmOpRedundant(Op, Lo8)) {
-    auto MIBLO = buildMI(MBB, MBBI, Op)
-      .addReg(DstLoReg, RegState::Define | getDeadRegState(DstIsDead))
-      .addReg(DstLoReg, getKillRegState(SrcIsKill))
-      .addImm(Lo8);
-
-    // SREG is always implicitly dead
-    MIBLO->getOperand(3).setIsDead();
-  }
-
-  if (!isLogicImmOpRedundant(Op, Hi8)) {
-    auto MIBHI = buildMI(MBB, MBBI, Op)
-      .addReg(DstHiReg, RegState::Define | getDeadRegState(DstIsDead))
-      .addReg(DstHiReg, getKillRegState(SrcIsKill))
-      .addImm(Hi8);
-
-    if (ImpIsDead)
-      MIBHI->getOperand(3).setIsDead();
-  }
-
-  MI.eraseFromParent();
-  return true;
-}
-
 template <>
 bool OPEN8ExpandPseudo::expand<OPEN8::ADDWRdRr>(Block &MBB, BlockIt MBBI) {
   return expandArith(OPEN8::ADDRdRr, OPEN8::ADCRdRr, MBB, MBBI);
@@ -273,34 +218,32 @@ bool OPEN8ExpandPseudo::expand<OPEN8::SUBWRdRr>(Block &MBB, BlockIt MBBI) {
 template <>
 bool OPEN8ExpandPseudo::expand<OPEN8::SUBIWRdK>(Block &MBB, BlockIt MBBI) {
   MachineInstr &MI = *MBBI;
-  Register DstLoReg, DstHiReg;
+  //Register DstLoReg, DstHiReg;
   Register DstReg = MI.getOperand(0).getReg();
   bool DstIsDead = MI.getOperand(0).isDead();
   bool SrcIsKill = MI.getOperand(1).isKill();
   bool ImpIsDead = MI.getOperand(3).isDead();
-  TRI->splitReg(DstReg, DstLoReg, DstHiReg);
 
-  auto MIBLO = buildMI(MBB, MBBI, OPEN8::SUBIRdK)
-    .addReg(DstLoReg, RegState::Define | getDeadRegState(DstIsDead))
-    .addReg(DstLoReg, getKillRegState(SrcIsKill));
+  auto MIBLO = buildMI(MBB, MBBI, OPEN8::LDIWRdk)
+    .addReg(OPEN8::R1R0, RegState::Define | getDeadRegState(DstIsDead));
 
-  auto MIBHI = buildMI(MBB, MBBI, OPEN8::SBCIRdK)
-    .addReg(DstHiReg, RegState::Define | getDeadRegState(DstIsDead))
-    .addReg(DstHiReg, getKillRegState(SrcIsKill));
+  auto MIBHI = buildMI(MBB, MBBI, OPEN8::SUBWRdRr)
+    .addReg(DstReg, RegState::Define | getDeadRegState(DstIsDead))
+    .addReg(DstReg, getKillRegState(SrcIsKill))
+    .addReg(OPEN8::R1R0);
 
   switch (MI.getOperand(2).getType()) {
-  case MachineOperand::MO_GlobalAddress: {
+  /*case MachineOperand::MO_GlobalAddress: {
     const GlobalValue *GV = MI.getOperand(2).getGlobal();
     int64_t Offs = MI.getOperand(2).getOffset();
     unsigned TF = MI.getOperand(2).getTargetFlags();
-    MIBLO.addGlobalAddress(GV, Offs, TF | OPEN8II::MO_NEG | OPEN8II::MO_LO);
-    MIBHI.addGlobalAddress(GV, Offs, TF | OPEN8II::MO_NEG | OPEN8II::MO_HI);
+    MIBLO.addGlobalAddress(GV, Offs, TF | AVRII::MO_NEG | AVRII::MO_LO);
+    MIBHI.addGlobalAddress(GV, Offs, TF | AVRII::MO_NEG | AVRII::MO_HI);
     break;
-  }
+  }*/
   case MachineOperand::MO_Immediate: {
     unsigned Imm = MI.getOperand(2).getImm();
-    MIBLO.addImm(Imm & 0xff);
-    MIBHI.addImm((Imm >> 8) & 0xff);
+    MIBLO.addImm(Imm & 0xffff);
     break;
   }
   default:
@@ -310,9 +253,6 @@ bool OPEN8ExpandPseudo::expand<OPEN8::SUBIWRdK>(Block &MBB, BlockIt MBBI) {
   if (ImpIsDead)
     MIBHI->getOperand(3).setIsDead();
 
-  // SREG is always implicitly killed
-  MIBHI->getOperand(4).setIsKill();
-
   MI.eraseFromParent();
   return true;
 }
@@ -321,7 +261,7 @@ template <>
 bool OPEN8ExpandPseudo::expand<OPEN8::SBCWRdRr>(Block &MBB, BlockIt MBBI) {
   return expandArith(OPEN8::SBCRdRr, OPEN8::SBCRdRr, MBB, MBBI);
 }
-
+/*
 template <>
 bool OPEN8ExpandPseudo::expand<OPEN8::SBCIWRdK>(Block &MBB, BlockIt MBBI) {
   MachineInstr &MI = *MBBI;
@@ -359,26 +299,26 @@ bool OPEN8ExpandPseudo::expand<OPEN8::SBCIWRdK>(Block &MBB, BlockIt MBBI) {
   MI.eraseFromParent();
   return true;
 }
-
+*/
 template <>
 bool OPEN8ExpandPseudo::expand<OPEN8::ANDWRdRr>(Block &MBB, BlockIt MBBI) {
   return expandLogic(OPEN8::ANDRdRr, MBB, MBBI);
 }
 
-template <>
+/*template <>
 bool OPEN8ExpandPseudo::expand<OPEN8::ANDIWRdK>(Block &MBB, BlockIt MBBI) {
   return expandLogicImm(OPEN8::ANDIRdK, MBB, MBBI);
-}
+}*/
 
 template <>
 bool OPEN8ExpandPseudo::expand<OPEN8::ORWRdRr>(Block &MBB, BlockIt MBBI) {
   return expandLogic(OPEN8::ORRdRr, MBB, MBBI);
 }
 
-template <>
+/*template <>
 bool OPEN8ExpandPseudo::expand<OPEN8::ORIWRdK>(Block &MBB, BlockIt MBBI) {
   return expandLogicImm(OPEN8::ORIRdK, MBB, MBBI);
-}
+}*/
 
 template <>
 bool OPEN8ExpandPseudo::expand<OPEN8::EORWRdRr>(Block &MBB, BlockIt MBBI) {
@@ -443,7 +383,8 @@ bool OPEN8ExpandPseudo::expand<OPEN8::NEGWRd>(Block &MBB, BlockIt MBBI) {
       buildMI(MBB, MBBI, OPEN8::SBCRdRr)
           .addReg(DstHiReg, RegState::Define | getDeadRegState(DstIsDead))
           .addReg(DstHiReg, getKillRegState(DstIsKill))
-          .addReg(ZERO_REGISTER);
+          .addReg(OPEN8::R0);
+          //.addReg(ZERO_REGISTER);
   if (ImpIsDead)
     MISBCI->getOperand(3).setIsDead();
   // SREG is always implicitly killed
@@ -522,13 +463,13 @@ bool OPEN8ExpandPseudo::expand<OPEN8::CPCWRdRr>(Block &MBB, BlockIt MBBI) {
 }
 
 template <>
-bool OPEN8ExpandPseudo::expand<OPEN8::LDIWRdK>(Block &MBB, BlockIt MBBI) {
+bool OPEN8ExpandPseudo::expand<OPEN8::LDIWRdk>(Block &MBB, BlockIt MBBI) {
   MachineInstr &MI = *MBBI;
   Register DstLoReg, DstHiReg;
   Register DstReg = MI.getOperand(0).getReg();
   bool DstIsDead = MI.getOperand(0).isDead();
-  unsigned OpLo = OPEN8::LDIRdK;
-  unsigned OpHi = OPEN8::LDIRdK;
+  unsigned OpLo = OPEN8::LDIRdk;
+  unsigned OpHi = OPEN8::LDIRdk;
   TRI->splitReg(DstReg, DstLoReg, DstHiReg);
 
   auto MIBLO = buildMI(MBB, MBBI, OpLo)
@@ -571,13 +512,13 @@ bool OPEN8ExpandPseudo::expand<OPEN8::LDIWRdK>(Block &MBB, BlockIt MBBI) {
 }
 
 template <>
-bool OPEN8ExpandPseudo::expand<OPEN8::LDSWRdK>(Block &MBB, BlockIt MBBI) {
+bool OPEN8ExpandPseudo::expand<OPEN8::LDAWRdk>(Block &MBB, BlockIt MBBI) {
   MachineInstr &MI = *MBBI;
   Register DstLoReg, DstHiReg;
   Register DstReg = MI.getOperand(0).getReg();
   bool DstIsDead = MI.getOperand(0).isDead();
-  unsigned OpLo = OPEN8::LDSRdK;
-  unsigned OpHi = OPEN8::LDSRdK;
+  unsigned OpLo = OPEN8::LDARdk;
+  unsigned OpHi = OPEN8::LDARdk;
   TRI->splitReg(DstReg, DstLoReg, DstHiReg);
 
   auto MIBLO = buildMI(MBB, MBBI, OpLo)
@@ -615,15 +556,39 @@ bool OPEN8ExpandPseudo::expand<OPEN8::LDSWRdK>(Block &MBB, BlockIt MBBI) {
 }
 
 template <>
-bool OPEN8ExpandPseudo::expand<OPEN8::LDWRdPtr>(Block &MBB, BlockIt MBBI) {
+bool OPEN8ExpandPseudo::expand<OPEN8::LDDRdQ>(Block &MBB, BlockIt MBBI) {
+  MachineInstr &MI = *MBBI;
+  unsigned Op0, Op1;
+  Register sp = MI.getOperand(1).getReg();
+  unsigned Imm = MI.getOperand(2).getImm();
+  Register Reg = MI.getOperand(0).getReg();
+  unsigned spIsKill = MI.getOperand(1).isKill();
+  unsigned RegIsKill = MI.getOperand(0).isKill();
+
+  Op0 = OPEN8::LDO;
+  Op1 = OPEN8::T0X;
+
+  /*auto MIBHI = */buildMI(MBB, MBBI, Op0)
+    .addReg(sp, getKillRegState(spIsKill))
+    .addImm(Imm);
+  if (Reg != OPEN8::R0)
+  /*auto MIBLO = */buildMI(MBB, MBBI, Op1)
+    .addReg(Reg, getKillRegState(RegIsKill));
+
+  MI.eraseFromParent();
+  return true;
+}
+
+template <>
+bool OPEN8ExpandPseudo::expand<OPEN8::LDWRd>(Block &MBB, BlockIt MBBI) {
   MachineInstr &MI = *MBBI;
   Register DstLoReg, DstHiReg;
   Register DstReg = MI.getOperand(0).getReg();
   Register TmpReg = 0; // 0 for no temporary register
   Register SrcReg = MI.getOperand(1).getReg();
   bool SrcIsKill = MI.getOperand(1).isKill();
-  unsigned OpLo = OPEN8::LDRdPtr;
-  unsigned OpHi = OPEN8::LDDRdPtrQ;
+  unsigned OpLo = OPEN8::LDRd;
+  unsigned OpHi = OPEN8::LDDRdQ;
   TRI->splitReg(DstReg, DstLoReg, DstHiReg);
 
   // Use a temporary register if src and dst registers are the same.
@@ -664,15 +629,15 @@ bool OPEN8ExpandPseudo::expand<OPEN8::LDWRdPtr>(Block &MBB, BlockIt MBBI) {
 }
 
 template <>
-bool OPEN8ExpandPseudo::expand<OPEN8::LDWRdPtrPi>(Block &MBB, BlockIt MBBI) {
+bool OPEN8ExpandPseudo::expand<OPEN8::LDWRdPi>(Block &MBB, BlockIt MBBI) {
   MachineInstr &MI = *MBBI;
   Register DstLoReg, DstHiReg;
   Register DstReg = MI.getOperand(0).getReg();
   Register SrcReg = MI.getOperand(1).getReg();
   bool DstIsDead = MI.getOperand(0).isDead();
   bool SrcIsDead = MI.getOperand(1).isKill();
-  unsigned OpLo = OPEN8::LDRdPtrPi;
-  unsigned OpHi = OPEN8::LDRdPtrPi;
+  unsigned OpLo = OPEN8::LDRdPi;
+  unsigned OpHi = OPEN8::LDRdPi;
   TRI->splitReg(DstReg, DstLoReg, DstHiReg);
 
   assert(DstReg != SrcReg && "SrcReg and DstReg cannot be the same");
@@ -694,39 +659,9 @@ bool OPEN8ExpandPseudo::expand<OPEN8::LDWRdPtrPi>(Block &MBB, BlockIt MBBI) {
   return true;
 }
 
-template <>
-bool OPEN8ExpandPseudo::expand<OPEN8::LDWRdPtrPd>(Block &MBB, BlockIt MBBI) {
-  MachineInstr &MI = *MBBI;
-  Register DstLoReg, DstHiReg;
-  Register DstReg = MI.getOperand(0).getReg();
-  Register SrcReg = MI.getOperand(1).getReg();
-  bool DstIsDead = MI.getOperand(0).isDead();
-  bool SrcIsDead = MI.getOperand(1).isKill();
-  unsigned OpLo = OPEN8::LDRdPtrPd;
-  unsigned OpHi = OPEN8::LDRdPtrPd;
-  TRI->splitReg(DstReg, DstLoReg, DstHiReg);
-
-  assert(DstReg != SrcReg && "SrcReg and DstReg cannot be the same");
-
-  auto MIBHI = buildMI(MBB, MBBI, OpHi)
-    .addReg(DstHiReg, RegState::Define | getDeadRegState(DstIsDead))
-    .addReg(SrcReg, RegState::Define)
-    .addReg(SrcReg, RegState::Kill);
-
-  auto MIBLO = buildMI(MBB, MBBI, OpLo)
-    .addReg(DstLoReg, RegState::Define | getDeadRegState(DstIsDead))
-    .addReg(SrcReg, RegState::Define | getDeadRegState(SrcIsDead))
-    .addReg(SrcReg, RegState::Kill);
-
-  MIBLO.setMemRefs(MI.memoperands());
-  MIBHI.setMemRefs(MI.memoperands());
-
-  MI.eraseFromParent();
-  return true;
-}
 
 template <>
-bool OPEN8ExpandPseudo::expand<OPEN8::LDDWRdPtrQ>(Block &MBB, BlockIt MBBI) {
+bool OPEN8ExpandPseudo::expand<OPEN8::LDDWRdQ>(Block &MBB, BlockIt MBBI) {
   MachineInstr &MI = *MBBI;
   Register DstLoReg, DstHiReg;
   Register DstReg = MI.getOperand(0).getReg();
@@ -734,13 +669,13 @@ bool OPEN8ExpandPseudo::expand<OPEN8::LDDWRdPtrQ>(Block &MBB, BlockIt MBBI) {
   Register SrcReg = MI.getOperand(1).getReg();
   unsigned Imm = MI.getOperand(2).getImm();
   bool SrcIsKill = MI.getOperand(1).isKill();
-  unsigned OpLo = OPEN8::LDDRdPtrQ;
-  unsigned OpHi = OPEN8::LDDRdPtrQ;
+  unsigned OpLo = OPEN8::LDDRdQ;
+  unsigned OpHi = OPEN8::LDDRdQ;
   TRI->splitReg(DstReg, DstLoReg, DstHiReg);
 
   // Since we add 1 to the Imm value for the high byte below, and 63 is the highest Imm value
   // allowed for the instruction, 62 is the limit here.
-  assert(Imm <= 62 && "Offset is out of range");
+  assert(Imm <= 254 && "Offset is out of range");
 
   // Use a temporary register if src and dst registers are the same.
   if (DstReg == SrcReg)
@@ -780,126 +715,6 @@ bool OPEN8ExpandPseudo::expand<OPEN8::LDDWRdPtrQ>(Block &MBB, BlockIt MBBI) {
   return true;
 }
 
-template <>
-bool OPEN8ExpandPseudo::expand<OPEN8::LPMWRdZ>(Block &MBB, BlockIt MBBI) {
-  MachineInstr &MI = *MBBI;
-  Register DstLoReg, DstHiReg;
-  Register DstReg = MI.getOperand(0).getReg();
-  Register TmpReg = 0; // 0 for no temporary register
-  Register SrcReg = MI.getOperand(1).getReg();
-  bool SrcIsKill = MI.getOperand(1).isKill();
-  unsigned OpLo = OPEN8::LPMRdZPi;
-  unsigned OpHi = OPEN8::LPMRdZ;
-  TRI->splitReg(DstReg, DstLoReg, DstHiReg);
-
-  // Use a temporary register if src and dst registers are the same.
-  if (DstReg == SrcReg)
-    TmpReg = scavengeGPR8(MI);
-
-  Register CurDstLoReg = (DstReg == SrcReg) ? TmpReg : DstLoReg;
-  Register CurDstHiReg = (DstReg == SrcReg) ? TmpReg : DstHiReg;
-
-  // Load low byte.
-  auto MIBLO = buildMI(MBB, MBBI, OpLo)
-      .addReg(CurDstLoReg, RegState::Define)
-      .addReg(SrcReg);
-
-  // Push low byte onto stack if necessary.
-  if (TmpReg)
-    buildMI(MBB, MBBI, OPEN8::PUSHRr).addReg(TmpReg);
-
-  // Load high byte.
-  auto MIBHI = buildMI(MBB, MBBI, OpHi)
-      .addReg(CurDstHiReg, RegState::Define)
-      .addReg(SrcReg, getKillRegState(SrcIsKill));
-
-  if (TmpReg) {
-    // Move the high byte into the final destination.
-    buildMI(MBB, MBBI, OPEN8::MOVRdRr, DstHiReg).addReg(TmpReg);
-
-    // Move the low byte from the scratch space into the final destination.
-    buildMI(MBB, MBBI, OPEN8::POPRd, DstLoReg);
-  }
-
-  MIBLO.setMemRefs(MI.memoperands());
-  MIBHI.setMemRefs(MI.memoperands());
-
-  MI.eraseFromParent();
-  return true;
-}
-
-template <>
-bool OPEN8ExpandPseudo::expand<OPEN8::LPMWRdZPi>(Block &MBB, BlockIt MBBI) {
-  llvm_unreachable("wide LPMPi is unimplemented");
-}
-
-template<typename Func>
-bool OPEN8ExpandPseudo::expandAtomic(Block &MBB, BlockIt MBBI, Func f) {
-  // Remove the pseudo instruction.
-  MachineInstr &MI = *MBBI;
-
-  // Store the SREG.
-  buildMI(MBB, MBBI, OPEN8::INRdA)
-    .addReg(SCRATCH_REGISTER, RegState::Define)
-    .addImm(SREG_ADDR);
-
-  // Disable exceptions.
-  buildMI(MBB, MBBI, OPEN8::BCLRs).addImm(7); // CLI
-
-  f(MI);
-
-  // Restore the status reg.
-  buildMI(MBB, MBBI, OPEN8::OUTARr)
-    .addImm(SREG_ADDR)
-    .addReg(SCRATCH_REGISTER);
-
-  MI.eraseFromParent();
-  return true;
-}
-
-template<typename Func>
-bool OPEN8ExpandPseudo::expandAtomicBinaryOp(unsigned Opcode,
-                                           Block &MBB,
-                                           BlockIt MBBI,
-                                           Func f) {
-  return expandAtomic(MBB, MBBI, [&](MachineInstr &MI) {
-      auto Op1 = MI.getOperand(0);
-      auto Op2 = MI.getOperand(1);
-
-      MachineInstr &NewInst =
-          *buildMI(MBB, MBBI, Opcode).add(Op1).add(Op2).getInstr();
-      f(NewInst);
-  });
-}
-
-bool OPEN8ExpandPseudo::expandAtomicBinaryOp(unsigned Opcode,
-                                           Block &MBB,
-                                           BlockIt MBBI) {
-  return expandAtomicBinaryOp(Opcode, MBB, MBBI, [](MachineInstr &MI) {});
-}
-
-bool OPEN8ExpandPseudo::expandAtomicArithmeticOp(unsigned Width,
-                                               unsigned ArithOpcode,
-                                               Block &MBB,
-                                               BlockIt MBBI) {
-  return expandAtomic(MBB, MBBI, [&](MachineInstr &MI) {
-      auto Op1 = MI.getOperand(0);
-      auto Op2 = MI.getOperand(1);
-
-      unsigned LoadOpcode = (Width == 8) ? OPEN8::LDRdPtr : OPEN8::LDWRdPtr;
-      unsigned StoreOpcode = (Width == 8) ? OPEN8::STPtrRr : OPEN8::STWPtrRr;
-
-      // Create the load
-      buildMI(MBB, MBBI, LoadOpcode).add(Op1).add(Op2);
-
-      // Create the arithmetic op
-      buildMI(MBB, MBBI, ArithOpcode).add(Op1).add(Op1).add(Op2);
-
-      // Create the store
-      buildMI(MBB, MBBI, StoreOpcode).add(Op2).add(Op1);
-  });
-}
-
 Register OPEN8ExpandPseudo::scavengeGPR8(MachineInstr &MI) {
   MachineBasicBlock &MBB = *MI.getParent();
   RegScavenger RS;
@@ -926,91 +741,14 @@ Register OPEN8ExpandPseudo::scavengeGPR8(MachineInstr &MI) {
   return Reg;
 }
 
-template<>
-bool OPEN8ExpandPseudo::expand<OPEN8::AtomicLoad8>(Block &MBB, BlockIt MBBI) {
-  return expandAtomicBinaryOp(OPEN8::LDRdPtr, MBB, MBBI);
-}
-
-template<>
-bool OPEN8ExpandPseudo::expand<OPEN8::AtomicLoad16>(Block &MBB, BlockIt MBBI) {
-  return expandAtomicBinaryOp(OPEN8::LDWRdPtr, MBB, MBBI);
-}
-
-template<>
-bool OPEN8ExpandPseudo::expand<OPEN8::AtomicStore8>(Block &MBB, BlockIt MBBI) {
-  return expandAtomicBinaryOp(OPEN8::STPtrRr, MBB, MBBI);
-}
-
-template<>
-bool OPEN8ExpandPseudo::expand<OPEN8::AtomicStore16>(Block &MBB, BlockIt MBBI) {
-  return expandAtomicBinaryOp(OPEN8::STWPtrRr, MBB, MBBI);
-}
-
-template<>
-bool OPEN8ExpandPseudo::expand<OPEN8::AtomicLoadAdd8>(Block &MBB, BlockIt MBBI) {
-  return expandAtomicArithmeticOp(8, OPEN8::ADDRdRr, MBB, MBBI);
-}
-
-template<>
-bool OPEN8ExpandPseudo::expand<OPEN8::AtomicLoadAdd16>(Block &MBB, BlockIt MBBI) {
-  return expandAtomicArithmeticOp(16, OPEN8::ADDWRdRr, MBB, MBBI);
-}
-
-template<>
-bool OPEN8ExpandPseudo::expand<OPEN8::AtomicLoadSub8>(Block &MBB, BlockIt MBBI) {
-  return expandAtomicArithmeticOp(8, OPEN8::SUBRdRr, MBB, MBBI);
-}
-
-template<>
-bool OPEN8ExpandPseudo::expand<OPEN8::AtomicLoadSub16>(Block &MBB, BlockIt MBBI) {
-  return expandAtomicArithmeticOp(16, OPEN8::SUBWRdRr, MBB, MBBI);
-}
-
-template<>
-bool OPEN8ExpandPseudo::expand<OPEN8::AtomicLoadAnd8>(Block &MBB, BlockIt MBBI) {
-  return expandAtomicArithmeticOp(8, OPEN8::ANDRdRr, MBB, MBBI);
-}
-
-template<>
-bool OPEN8ExpandPseudo::expand<OPEN8::AtomicLoadAnd16>(Block &MBB, BlockIt MBBI) {
-  return expandAtomicArithmeticOp(16, OPEN8::ANDWRdRr, MBB, MBBI);
-}
-
-template<>
-bool OPEN8ExpandPseudo::expand<OPEN8::AtomicLoadOr8>(Block &MBB, BlockIt MBBI) {
-  return expandAtomicArithmeticOp(8, OPEN8::ORRdRr, MBB, MBBI);
-}
-
-template<>
-bool OPEN8ExpandPseudo::expand<OPEN8::AtomicLoadOr16>(Block &MBB, BlockIt MBBI) {
-  return expandAtomicArithmeticOp(16, OPEN8::ORWRdRr, MBB, MBBI);
-}
-
-template<>
-bool OPEN8ExpandPseudo::expand<OPEN8::AtomicLoadXor8>(Block &MBB, BlockIt MBBI) {
-  return expandAtomicArithmeticOp(8, OPEN8::EORRdRr, MBB, MBBI);
-}
-
-template<>
-bool OPEN8ExpandPseudo::expand<OPEN8::AtomicLoadXor16>(Block &MBB, BlockIt MBBI) {
-  return expandAtomicArithmeticOp(16, OPEN8::EORWRdRr, MBB, MBBI);
-}
-
-template<>
-bool OPEN8ExpandPseudo::expand<OPEN8::AtomicFence>(Block &MBB, BlockIt MBBI) {
-  // On OPEN8, there is only one core and so atomic fences do nothing.
-  MBBI->eraseFromParent();
-  return true;
-}
-
 template <>
-bool OPEN8ExpandPseudo::expand<OPEN8::STSWKRr>(Block &MBB, BlockIt MBBI) {
+bool OPEN8ExpandPseudo::expand<OPEN8::STAWKRr>(Block &MBB, BlockIt MBBI) {
   MachineInstr &MI = *MBBI;
   Register SrcLoReg, SrcHiReg;
   Register SrcReg = MI.getOperand(1).getReg();
   bool SrcIsKill = MI.getOperand(1).isKill();
-  unsigned OpLo = OPEN8::STSKRr;
-  unsigned OpHi = OPEN8::STSKRr;
+  unsigned OpLo = OPEN8::STAKRr;
+  unsigned OpHi = OPEN8::STAKRr;
   TRI->splitReg(SrcReg, SrcLoReg, SrcHiReg);
 
   // Write the high byte first in case this address belongs to a special
@@ -1050,15 +788,15 @@ bool OPEN8ExpandPseudo::expand<OPEN8::STSWKRr>(Block &MBB, BlockIt MBBI) {
 }
 
 template <>
-bool OPEN8ExpandPseudo::expand<OPEN8::STWPtrRr>(Block &MBB, BlockIt MBBI) {
+bool OPEN8ExpandPseudo::expand<OPEN8::STWRr>(Block &MBB, BlockIt MBBI) {
   MachineInstr &MI = *MBBI;
   Register SrcLoReg, SrcHiReg;
   Register DstReg = MI.getOperand(0).getReg();
   Register SrcReg = MI.getOperand(1).getReg();
   bool DstIsUndef = MI.getOperand(0).isUndef();
   bool SrcIsKill = MI.getOperand(1).isKill();
-  unsigned OpLo = OPEN8::STPtrRr;
-  unsigned OpHi = OPEN8::STDPtrQRr;
+  unsigned OpLo = OPEN8::STRr;
+  unsigned OpHi = OPEN8::STDQRr;
   TRI->splitReg(SrcReg, SrcLoReg, SrcHiReg);
 
   //:TODO: need to reverse this order like inw and stsw?
@@ -1079,7 +817,7 @@ bool OPEN8ExpandPseudo::expand<OPEN8::STWPtrRr>(Block &MBB, BlockIt MBBI) {
 }
 
 template <>
-bool OPEN8ExpandPseudo::expand<OPEN8::STWPtrPiRr>(Block &MBB, BlockIt MBBI) {
+bool OPEN8ExpandPseudo::expand<OPEN8::STWPiRr>(Block &MBB, BlockIt MBBI) {
   MachineInstr &MI = *MBBI;
   Register SrcLoReg, SrcHiReg;
   Register DstReg = MI.getOperand(0).getReg();
@@ -1087,8 +825,8 @@ bool OPEN8ExpandPseudo::expand<OPEN8::STWPtrPiRr>(Block &MBB, BlockIt MBBI) {
   unsigned Imm = MI.getOperand(3).getImm();
   bool DstIsDead = MI.getOperand(0).isDead();
   bool SrcIsKill = MI.getOperand(2).isKill();
-  unsigned OpLo = OPEN8::STPtrPiRr;
-  unsigned OpHi = OPEN8::STPtrPiRr;
+  unsigned OpLo = OPEN8::STPiRr;
+  unsigned OpHi = OPEN8::STPiRr;
   TRI->splitReg(SrcReg, SrcLoReg, SrcHiReg);
 
   assert(DstReg != SrcReg && "SrcReg and DstReg cannot be the same");
@@ -1113,41 +851,7 @@ bool OPEN8ExpandPseudo::expand<OPEN8::STWPtrPiRr>(Block &MBB, BlockIt MBBI) {
 }
 
 template <>
-bool OPEN8ExpandPseudo::expand<OPEN8::STWPtrPdRr>(Block &MBB, BlockIt MBBI) {
-  MachineInstr &MI = *MBBI;
-  Register SrcLoReg, SrcHiReg;
-  Register DstReg = MI.getOperand(0).getReg();
-  Register SrcReg = MI.getOperand(2).getReg();
-  unsigned Imm = MI.getOperand(3).getImm();
-  bool DstIsDead = MI.getOperand(0).isDead();
-  bool SrcIsKill = MI.getOperand(2).isKill();
-  unsigned OpLo = OPEN8::STPtrPdRr;
-  unsigned OpHi = OPEN8::STPtrPdRr;
-  TRI->splitReg(SrcReg, SrcLoReg, SrcHiReg);
-
-  assert(DstReg != SrcReg && "SrcReg and DstReg cannot be the same");
-
-  auto MIBHI = buildMI(MBB, MBBI, OpHi)
-    .addReg(DstReg, RegState::Define)
-    .addReg(DstReg, RegState::Kill)
-    .addReg(SrcHiReg, getKillRegState(SrcIsKill))
-    .addImm(Imm);
-
-  auto MIBLO = buildMI(MBB, MBBI, OpLo)
-    .addReg(DstReg, RegState::Define | getDeadRegState(DstIsDead))
-    .addReg(DstReg, RegState::Kill)
-    .addReg(SrcLoReg, getKillRegState(SrcIsKill))
-    .addImm(Imm);
-
-  MIBLO.setMemRefs(MI.memoperands());
-  MIBHI.setMemRefs(MI.memoperands());
-
-  MI.eraseFromParent();
-  return true;
-}
-
-template <>
-bool OPEN8ExpandPseudo::expand<OPEN8::STDWPtrQRr>(Block &MBB, BlockIt MBBI) {
+bool OPEN8ExpandPseudo::expand<OPEN8::STDWQRr>(Block &MBB, BlockIt MBBI) {
   MachineInstr &MI = *MBBI;
   Register SrcLoReg, SrcHiReg;
   Register DstReg = MI.getOperand(0).getReg();
@@ -1155,8 +859,8 @@ bool OPEN8ExpandPseudo::expand<OPEN8::STDWPtrQRr>(Block &MBB, BlockIt MBBI) {
   unsigned Imm = MI.getOperand(1).getImm();
   bool DstIsKill = MI.getOperand(0).isKill();
   bool SrcIsKill = MI.getOperand(2).isKill();
-  unsigned OpLo = OPEN8::STDPtrQRr;
-  unsigned OpHi = OPEN8::STDPtrQRr;
+  unsigned OpLo = OPEN8::STDQRr;
+  unsigned OpHi = OPEN8::STDQRr;
   TRI->splitReg(SrcReg, SrcLoReg, SrcHiReg);
 
   // Since we add 1 to the Imm value for the high byte below, and 63 is the highest Imm value
@@ -1180,6 +884,7 @@ bool OPEN8ExpandPseudo::expand<OPEN8::STDWPtrQRr>(Block &MBB, BlockIt MBBI) {
   return true;
 }
 
+/*
 template <>
 bool OPEN8ExpandPseudo::expand<OPEN8::INWRdA>(Block &MBB, BlockIt MBBI) {
   MachineInstr &MI = *MBBI;
@@ -1190,26 +895,20 @@ bool OPEN8ExpandPseudo::expand<OPEN8::INWRdA>(Block &MBB, BlockIt MBBI) {
   unsigned OpLo = OPEN8::INRdA;
   unsigned OpHi = OPEN8::INRdA;
   TRI->splitReg(DstReg, DstLoReg, DstHiReg);
-
   // Since we add 1 to the Imm value for the high byte below, and 63 is the highest Imm value
   // allowed for the instruction, 62 is the limit here.
   assert(Imm <= 62 && "Address is out of range");
-
   auto MIBLO = buildMI(MBB, MBBI, OpLo)
     .addReg(DstLoReg, RegState::Define | getDeadRegState(DstIsDead))
     .addImm(Imm);
-
   auto MIBHI = buildMI(MBB, MBBI, OpHi)
     .addReg(DstHiReg, RegState::Define | getDeadRegState(DstIsDead))
     .addImm(Imm + 1);
-
   MIBLO.setMemRefs(MI.memoperands());
   MIBHI.setMemRefs(MI.memoperands());
-
   MI.eraseFromParent();
   return true;
 }
-
 template <>
 bool OPEN8ExpandPseudo::expand<OPEN8::OUTWARr>(Block &MBB, BlockIt MBBI) {
   MachineInstr &MI = *MBBI;
@@ -1220,27 +919,22 @@ bool OPEN8ExpandPseudo::expand<OPEN8::OUTWARr>(Block &MBB, BlockIt MBBI) {
   unsigned OpLo = OPEN8::OUTARr;
   unsigned OpHi = OPEN8::OUTARr;
   TRI->splitReg(SrcReg, SrcLoReg, SrcHiReg);
-
   // Since we add 1 to the Imm value for the high byte below, and 63 is the highest Imm value
   // allowed for the instruction, 62 is the limit here.
   assert(Imm <= 62 && "Address is out of range");
-
   // 16 bit I/O writes need the high byte first
   auto MIBHI = buildMI(MBB, MBBI, OpHi)
     .addImm(Imm + 1)
     .addReg(SrcHiReg, getKillRegState(SrcIsKill));
-
   auto MIBLO = buildMI(MBB, MBBI, OpLo)
     .addImm(Imm)
     .addReg(SrcLoReg, getKillRegState(SrcIsKill));
-
   MIBLO.setMemRefs(MI.memoperands());
   MIBHI.setMemRefs(MI.memoperands());
-
   MI.eraseFromParent();
   return true;
 }
-
+*/
 template <>
 bool OPEN8ExpandPseudo::expand<OPEN8::PUSHWRr>(Block &MBB, BlockIt MBBI) {
   MachineInstr &MI = *MBBI;
@@ -1311,7 +1005,8 @@ bool OPEN8ExpandPseudo::expand<OPEN8::ROLBRd>(Block &MBB, BlockIt MBBI) {
   auto MIB = buildMI(MBB, MBBI, OpCarry)
     .addReg(DstReg, RegState::Define | getDeadRegState(DstIsDead))
     .addReg(DstReg)
-    .addReg(ZERO_REGISTER);
+    .addReg(OPEN8::R1);
+    //ZERO_REGISTER
 
   // SREG is always implicitly killed
   MIB->getOperand(2).setIsKill();
@@ -1333,7 +1028,7 @@ bool OPEN8ExpandPseudo::expand<OPEN8::RORBRd>(Block &MBB, BlockIt MBBI) {
   Register DstReg = MI.getOperand(0).getReg();
   bool DstIsDead = MI.getOperand(0).isDead();
   OpShiftOut = OPEN8::LSRRd;
-  OpLoad = OPEN8::LDIRdK;
+  OpLoad = OPEN8::LDIRdk;
   OpShiftIn = OPEN8::RORRd;
   OpAdd = OPEN8::ORRdRr;
 
@@ -1421,7 +1116,7 @@ bool OPEN8ExpandPseudo::expand<OPEN8::LSLW4Rd>(Block &MBB, BlockIt MBBI) {
   buildMI(MBB, MBBI, OPEN8::SWAPRd)
       .addReg(DstLoReg, RegState::Define | getDeadRegState(DstIsDead))
       .addReg(DstLoReg, getKillRegState(DstIsKill));
-
+/*
   // andi Rh, 0xf0
   auto MI0 =
       buildMI(MBB, MBBI, OPEN8::ANDIRdK)
@@ -1430,7 +1125,7 @@ bool OPEN8ExpandPseudo::expand<OPEN8::LSLW4Rd>(Block &MBB, BlockIt MBBI) {
           .addImm(0xf0);
   // SREG is implicitly dead.
   MI0->getOperand(3).setIsDead();
-
+*/
   // eor Rh, Rl
   auto MI1 =
       buildMI(MBB, MBBI, OPEN8::EORRdRr)
@@ -1439,7 +1134,7 @@ bool OPEN8ExpandPseudo::expand<OPEN8::LSLW4Rd>(Block &MBB, BlockIt MBBI) {
           .addReg(DstLoReg);
   // SREG is implicitly dead.
   MI1->getOperand(3).setIsDead();
-
+/*
   // andi Rl, 0xf0
   auto MI2 =
       buildMI(MBB, MBBI, OPEN8::ANDIRdK)
@@ -1448,7 +1143,7 @@ bool OPEN8ExpandPseudo::expand<OPEN8::LSLW4Rd>(Block &MBB, BlockIt MBBI) {
           .addImm(0xf0);
   // SREG is implicitly dead.
   MI2->getOperand(3).setIsDead();
-
+*/
   // eor Rh, Rl
   auto MI3 =
       buildMI(MBB, MBBI, OPEN8::EORRdRr)
@@ -1509,7 +1204,7 @@ bool OPEN8ExpandPseudo::expand<OPEN8::LSLW12Rd>(Block &MBB, BlockIt MBBI) {
   buildMI(MBB, MBBI, OPEN8::SWAPRd)
       .addReg(DstHiReg, RegState::Define | getDeadRegState(DstIsDead))
       .addReg(DstHiReg, getKillRegState(DstIsKill));
-
+/*
   // andi Rh, 0xf0
   auto MI0 =
       buildMI(MBB, MBBI, OPEN8::ANDIRdK)
@@ -1518,7 +1213,7 @@ bool OPEN8ExpandPseudo::expand<OPEN8::LSLW12Rd>(Block &MBB, BlockIt MBBI) {
           .addImm(0xf0);
   // SREG is implicitly dead.
   MI0->getOperand(3).setIsDead();
-
+*/
   // clr Rl
   auto MI1 =
       buildMI(MBB, MBBI, OPEN8::EORRdRr)
@@ -1581,7 +1276,7 @@ bool OPEN8ExpandPseudo::expand<OPEN8::LSRW4Rd>(Block &MBB, BlockIt MBBI) {
   buildMI(MBB, MBBI, OPEN8::SWAPRd)
       .addReg(DstLoReg, RegState::Define | getDeadRegState(DstIsDead))
       .addReg(DstLoReg, getKillRegState(DstIsKill));
-
+/*
   // andi Rl, 0xf
   auto MI0 =
       buildMI(MBB, MBBI, OPEN8::ANDIRdK)
@@ -1590,7 +1285,7 @@ bool OPEN8ExpandPseudo::expand<OPEN8::LSRW4Rd>(Block &MBB, BlockIt MBBI) {
           .addImm(0xf);
   // SREG is implicitly dead.
   MI0->getOperand(3).setIsDead();
-
+*/
   // eor Rl, Rh
   auto MI1 =
       buildMI(MBB, MBBI, OPEN8::EORRdRr)
@@ -1599,7 +1294,7 @@ bool OPEN8ExpandPseudo::expand<OPEN8::LSRW4Rd>(Block &MBB, BlockIt MBBI) {
           .addReg(DstHiReg);
   // SREG is implicitly dead.
   MI1->getOperand(3).setIsDead();
-
+/*
   // andi Rh, 0xf
   auto MI2 =
       buildMI(MBB, MBBI, OPEN8::ANDIRdK)
@@ -1608,7 +1303,7 @@ bool OPEN8ExpandPseudo::expand<OPEN8::LSRW4Rd>(Block &MBB, BlockIt MBBI) {
           .addImm(0xf);
   // SREG is implicitly dead.
   MI2->getOperand(3).setIsDead();
-
+*/
   // eor Rl, Rh
   auto MI3 =
       buildMI(MBB, MBBI, OPEN8::EORRdRr)
@@ -1669,7 +1364,7 @@ bool OPEN8ExpandPseudo::expand<OPEN8::LSRW12Rd>(Block &MBB, BlockIt MBBI) {
   buildMI(MBB, MBBI, OPEN8::SWAPRd)
       .addReg(DstLoReg, RegState::Define | getDeadRegState(DstIsDead))
       .addReg(DstLoReg, getKillRegState(DstIsKill));
-
+/*
   // andi Rl, 0xf
   auto MI0 =
       buildMI(MBB, MBBI, OPEN8::ANDIRdK)
@@ -1678,7 +1373,7 @@ bool OPEN8ExpandPseudo::expand<OPEN8::LSRW12Rd>(Block &MBB, BlockIt MBBI) {
           .addImm(0xf);
   // SREG is implicitly dead.
   MI0->getOperand(3).setIsDead();
-
+*/
   // Clear upper byte.
   auto MIBHI =
       buildMI(MBB, MBBI, OPEN8::EORRdRr)
@@ -1974,7 +1669,7 @@ template <> bool OPEN8ExpandPseudo::expand<OPEN8::ZEXT>(Block &MBB, BlockIt MBBI
 template <>
 bool OPEN8ExpandPseudo::expand<OPEN8::SPREAD>(Block &MBB, BlockIt MBBI) {
   MachineInstr &MI = *MBBI;
-  Register DstLoReg, DstHiReg;
+  /*Register DstLoReg, DstHiReg;
   Register DstReg = MI.getOperand(0).getReg();
   bool DstIsDead = MI.getOperand(0).isDead();
   unsigned Flags = MI.getFlags();
@@ -1993,7 +1688,7 @@ bool OPEN8ExpandPseudo::expand<OPEN8::SPREAD>(Block &MBB, BlockIt MBBI) {
     .addReg(DstHiReg, RegState::Define | getDeadRegState(DstIsDead))
     .addImm(0x3e)
     .setMIFlags(Flags);
-
+*/
   MI.eraseFromParent();
   return true;
 }
@@ -2001,7 +1696,7 @@ bool OPEN8ExpandPseudo::expand<OPEN8::SPREAD>(Block &MBB, BlockIt MBBI) {
 template <>
 bool OPEN8ExpandPseudo::expand<OPEN8::SPWRITE>(Block &MBB, BlockIt MBBI) {
   MachineInstr &MI = *MBBI;
-  Register SrcLoReg, SrcHiReg;
+/*  Register SrcLoReg, SrcHiReg;
   Register SrcReg = MI.getOperand(1).getReg();
   bool SrcIsKill = MI.getOperand(1).isKill();
   unsigned Flags = MI.getFlags();
@@ -2028,7 +1723,7 @@ bool OPEN8ExpandPseudo::expand<OPEN8::SPWRITE>(Block &MBB, BlockIt MBBI) {
     .addImm(0x3d)
     .addReg(SrcLoReg, getKillRegState(SrcIsKill))
     .setMIFlags(Flags);
-
+*/
   MI.eraseFromParent();
   return true;
 }
@@ -2047,47 +1742,23 @@ bool OPEN8ExpandPseudo::expandMI(Block &MBB, BlockIt MBBI) {
     EXPAND(OPEN8::SUBWRdRr);
     EXPAND(OPEN8::SUBIWRdK);
     EXPAND(OPEN8::SBCWRdRr);
-    EXPAND(OPEN8::SBCIWRdK);
     EXPAND(OPEN8::ANDWRdRr);
-    EXPAND(OPEN8::ANDIWRdK);
     EXPAND(OPEN8::ORWRdRr);
-    EXPAND(OPEN8::ORIWRdK);
     EXPAND(OPEN8::EORWRdRr);
     EXPAND(OPEN8::COMWRd);
     EXPAND(OPEN8::NEGWRd);
     EXPAND(OPEN8::CPWRdRr);
     EXPAND(OPEN8::CPCWRdRr);
-    EXPAND(OPEN8::LDIWRdK);
-    EXPAND(OPEN8::LDSWRdK);
-    EXPAND(OPEN8::LDWRdPtr);
-    EXPAND(OPEN8::LDWRdPtrPi);
-    EXPAND(OPEN8::LDWRdPtrPd);
+    EXPAND(OPEN8::LDIWRdk);
+    EXPAND(OPEN8::LDAWRdk);
+    EXPAND(OPEN8::LDWRd);
+    EXPAND(OPEN8::LDWRdPi);
   case OPEN8::LDDWRdYQ: //:FIXME: remove this once PR13375 gets fixed
-    EXPAND(OPEN8::LDDWRdPtrQ);
-    EXPAND(OPEN8::LPMWRdZ);
-    EXPAND(OPEN8::LPMWRdZPi);
-    EXPAND(OPEN8::AtomicLoad8);
-    EXPAND(OPEN8::AtomicLoad16);
-    EXPAND(OPEN8::AtomicStore8);
-    EXPAND(OPEN8::AtomicStore16);
-    EXPAND(OPEN8::AtomicLoadAdd8);
-    EXPAND(OPEN8::AtomicLoadAdd16);
-    EXPAND(OPEN8::AtomicLoadSub8);
-    EXPAND(OPEN8::AtomicLoadSub16);
-    EXPAND(OPEN8::AtomicLoadAnd8);
-    EXPAND(OPEN8::AtomicLoadAnd16);
-    EXPAND(OPEN8::AtomicLoadOr8);
-    EXPAND(OPEN8::AtomicLoadOr16);
-    EXPAND(OPEN8::AtomicLoadXor8);
-    EXPAND(OPEN8::AtomicLoadXor16);
-    EXPAND(OPEN8::AtomicFence);
-    EXPAND(OPEN8::STSWKRr);
-    EXPAND(OPEN8::STWPtrRr);
-    EXPAND(OPEN8::STWPtrPiRr);
-    EXPAND(OPEN8::STWPtrPdRr);
-    EXPAND(OPEN8::STDWPtrQRr);
-    EXPAND(OPEN8::INWRdA);
-    EXPAND(OPEN8::OUTWARr);
+    EXPAND(OPEN8::LDDWRdQ);
+    EXPAND(OPEN8::STAWKRr);
+    EXPAND(OPEN8::STWRr);
+    EXPAND(OPEN8::STWPiRr);
+    EXPAND(OPEN8::STDWQRr);
     EXPAND(OPEN8::PUSHWRr);
     EXPAND(OPEN8::POPWRd);
     EXPAND(OPEN8::ROLBRd);

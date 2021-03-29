@@ -598,6 +598,7 @@ SDValue OPEN8TargetLowering::getOPEN8Cmp(SDValue LHS, SDValue RHS, ISD::CondCode
       default: {
         // Turn lhs < rhs with lhs constant into rhs >= lhs+1, this allows
         // us to  fold the constant into the cmp instruction.
+        // TODO: rev this to support setge
         RHS = DAG.getConstant(C->getSExtValue() + 1, DL, VT);
         CC = ISD::SETGE;
         break;
@@ -1602,8 +1603,8 @@ MachineBasicBlock *OPEN8TargetLowering::insertShift(MachineInstr &MI,
   Register DstReg = MI.getOperand(0).getReg();
 
   // BB:
-  // rjmp CheckBB
-  BuildMI(BB, dl, TII.get(OPEN8::RJMPk)).addMBB(CheckBB);
+  // jmp CheckBB
+  BuildMI(BB, dl, TII.get(OPEN8::JMPk)).addMBB(CheckBB);
 
   // LoopBB:
   // ShiftReg2 = shift ShiftReg
@@ -1635,7 +1636,7 @@ MachineBasicBlock *OPEN8TargetLowering::insertShift(MachineInstr &MI,
 
   BuildMI(CheckBB, dl, TII.get(OPEN8::DECRd), ShiftAmtReg2)
       .addReg(ShiftAmtReg);
-  BuildMI(CheckBB, dl, TII.get(OPEN8::BRPLk)).addMBB(LoopBB);
+  BuildMI(CheckBB, dl, TII.get(OPEN8::BRGEZ)).addMBB(LoopBB);
 
   MI.eraseFromParent(); // The pseudo instruction is gone now.
   return RemBB;
@@ -1715,7 +1716,7 @@ OPEN8TargetLowering::EmitInstrWithCustomInserter(MachineInstr &MI,
   // we must insert an unconditional branch to the fallthrough destination
   // if we are to insert basic blocks at the prior fallthrough point.
   if (FallThrough != nullptr) {
-    BuildMI(MBB, dl, TII.get(OPEN8::RJMPk)).addMBB(FallThrough);
+    BuildMI(MBB, dl, TII.get(OPEN8::JMPk)).addMBB(FallThrough);
   }
 
   MachineBasicBlock *trueMBB = MF->CreateMachineBasicBlock(LLVM_BB);
@@ -1736,12 +1737,12 @@ OPEN8TargetLowering::EmitInstrWithCustomInserter(MachineInstr &MI,
 
   OPEN8CC::CondCodes CC = (OPEN8CC::CondCodes)MI.getOperand(3).getImm();
   BuildMI(MBB, dl, TII.getBrCond(CC)).addMBB(trueMBB);
-  BuildMI(MBB, dl, TII.get(OPEN8::RJMPk)).addMBB(falseMBB);
+  BuildMI(MBB, dl, TII.get(OPEN8::JMPk)).addMBB(falseMBB);
   MBB->addSuccessor(falseMBB);
   MBB->addSuccessor(trueMBB);
 
   // Unconditionally flow back to the true block
-  BuildMI(falseMBB, dl, TII.get(OPEN8::RJMPk)).addMBB(trueMBB);
+  BuildMI(falseMBB, dl, TII.get(OPEN8::JMPk)).addMBB(trueMBB);
   falseMBB->addSuccessor(trueMBB);
 
   // Set up the Phi node to determine where we came from

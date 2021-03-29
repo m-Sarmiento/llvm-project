@@ -70,21 +70,6 @@ OPEN8MCCodeEmitter::loadStorePostEncoder(const MCInst &MI, unsigned EncodedValue
 
   assert(MI.getOperand(0).isReg() && MI.getOperand(1).isReg() &&
          "the load/store operands must be registers");
-
-  unsigned Opcode = MI.getOpcode();
-
-  // check whether either of the registers are the X pointer register.
-  bool IsRegX = false; /*MI.getOperand(0).getReg() == OPEN8::R27R26 ||
-                  MI.getOperand(1).getReg() == OPEN8::R27R26;*/
-
-  bool IsPredec = Opcode == OPEN8::LDRdPtrPd || Opcode == OPEN8::STPtrPdRr;
-  bool IsPostinc = Opcode == OPEN8::LDRdPtrPi || Opcode == OPEN8::STPtrPiRr;
-
-  // Check if we need to set the inconsistent bit
-  if (IsRegX || IsPredec || IsPostinc) {
-    EncodedValue |= (1 << 12);
-  }
-
   return EncodedValue;
 }
 
@@ -264,12 +249,31 @@ unsigned OPEN8MCCodeEmitter::getMachineOpValue(const MCInst &MI,
 void OPEN8MCCodeEmitter::emitInstruction(uint64_t Val, unsigned Size,
                                        const MCSubtargetInfo &STI,
                                        raw_ostream &OS) const {
-  size_t WordCount = Size / 2;
+  /*size_t WordCount = Size / 2;
 
   for (int64_t i = WordCount - 1; i >= 0; --i) {
     uint16_t Word = (Val >> (i * 16)) & 0xFFFF;
     support::endian::write(OS, Word, support::endianness::little);
+  }*/
+
+    size_t WordCount = Size;
+  if (WordCount == 3){
+    uint8_t Word = (Val >> (16)) & 0xFF;
+    support::endian::write(OS, Word, support::endianness::little);
+    uint16_t Word1 = (Val) & 0xFFFF;  //TODO: probably not the best way to emit these instructions
+    support::endian::write(OS, Word1, support::endianness::little);
+  } else {
+  for (int64_t i = WordCount - 1; i >= 0; --i) {
+    uint8_t Word = (Val >> (i * 8)) & 0xFF;
+    support::endian::write(OS, Word, support::endianness::little);
+    }
   }
+
+  /*for (int64_t i = 0; i < WordCount; ++i) {
+    uint8_t Word = (Val >> (i * 8)) & 0xFF;
+    support::endian::write(OS, Word, support::endianness::little);
+  }*/
+
 }
 
 void OPEN8MCCodeEmitter::encodeInstruction(const MCInst &MI, raw_ostream &OS,
