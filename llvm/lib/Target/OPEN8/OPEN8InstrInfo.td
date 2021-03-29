@@ -1274,10 +1274,10 @@ Defs = [SREG] in
   {
     // 8-bit ROL is an alias of ADC Rd, Rd
 
-    def ROLBRd : Pseudo<(outs GPR8:$rd),
+    /*def ROLBRd : Pseudo<(outs GPR8:$rd),
                         (ins GPR8:$src),
                         "rolb\t$rd",
-                        [(set i8:$rd, (OPEN8rol i8:$src)), (implicit SREG)]>;
+                        [(set i8:$rd, (OPEN8rol i8:$src)), (implicit SREG)]>;*/
 
     def RORBRd : Pseudo<(outs GPR8:$rd),
                         (ins GPR8:$src),
@@ -1289,10 +1289,10 @@ Defs = [SREG] in
                         "rolw\t$rd",
                         [(set i16:$rd, (OPEN8rol i16:$src)), (implicit SREG)]>;
 
-    def RORRd : Pseudo<(outs GPR8:$rd),
+    /*def RORRd : Pseudo<(outs GPR8:$rd),
                     (ins GPR8:$src),
                     "ror\t$rd",
-                    []>;
+                    []>;*/ //
 
     def RORWRd : Pseudo<(outs DREGS:$rd),
                         (ins DREGS:$src),
@@ -1618,19 +1618,20 @@ Defs = [SREG] in
   //===----------------------------------------------------------------------===//
   // Increment and Decrement
   //===----------------------------------------------------------------------===//
-
-  def ROL : OPEN8OpReg<OP_ROL,
+  let Uses = [SREG] in
+  {
+  def ROLBRd : OPEN8OpReg<OP_ROL,
                      (outs GPR8:$rn),
                      (ins GPR8:$src),
                      "rol\t$rn",
                      [(set i8:$rn, (OPEN8rol i8:$src)), (implicit SREG)]>;  
 
-  def ROR : OPEN8OpReg<OP_ROR,
+  def RORRd : OPEN8OpReg<OP_ROR,
                      (outs GPR8:$rn),
                      (ins GPR8:$src),
                      "ror\t$rn",
                      [(set i8:$rn, (OPEN8ror i8:$src)), (implicit SREG)]>; 
-
+  }
 }
 
 let Defs = [R0, SREG] in
