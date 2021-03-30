@@ -76,7 +76,7 @@ static DecodeStatus DecodeGPR8RegisterClass(MCInst &Inst, unsigned RegNo,
   return MCDisassembler::Success;
 }
 
-static DecodeStatus DecodeLD8RegisterClass(MCInst &Inst, unsigned RegNo,
+/*static DecodeStatus DecodeLD8RegisterClass(MCInst &Inst, unsigned RegNo,
                                            uint64_t Address, const void *Decoder) {
   if (RegNo > 3)
     return MCDisassembler::Fail;
@@ -84,7 +84,7 @@ static DecodeStatus DecodeLD8RegisterClass(MCInst &Inst, unsigned RegNo,
   unsigned Register = GPRDecoderTable[RegNo+4];
   Inst.addOperand(MCOperand::createReg(Register));
   return MCDisassembler::Success;
-}
+}*/
 
 /*static DecodeStatus DecodePTRREGSRegisterClass(MCInst &Inst, unsigned RegNo,
                                                uint64_t Address, const void *Decoder) {

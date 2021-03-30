@@ -149,7 +149,7 @@ def PTRDISPREGS : RegisterClass<"OPEN8", [i16], 8,
 def GPRSP: RegisterClass<"OPEN8", [i16], 8, (add SP)>;
 
 // Status register.
-def SREG : OPEN8Reg<14, "FLAGS">, DwarfRegNum<[88]>;
+def SREG : OPEN8Reg<14, "PSR">, DwarfRegNum<[88]>;
 def CCR : RegisterClass<"OPEN8", [i8], 8, (add SREG)>
 {
   let CopyCost = -1;      // Don't allow copying of status registers

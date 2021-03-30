@@ -97,7 +97,7 @@ unsigned OPEN8ELFObjectWriter::getRelocType(MCContext &Ctx,
   case OPEN8::fixup_call:
     return ELF::R_OPEN8_CALL;
   case OPEN8::fixup_ldi:
-    return ELF::R_OPEN8_8;
+    return ELF::R_OPEN8_LO8_LDI;
   /*case OPEN8::fixup_6:
     return ELF::R_OPEN8_8;
   case OPEN8::fixup_6_adiw:

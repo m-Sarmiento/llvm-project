@@ -907,7 +907,7 @@ let isReMaterializable = 1 in
 {
 
    def LDIRdk : OPEN8OpRegOff<OP_LDI,
-                     (outs LD8:$rn),
+                     (outs GPR8:$rn),
                      (ins imm_ldi8:$offset),
                      "ldi\t$rn, $offset",
                      [(set i8:$rn, imm:$offset)]>;
@@ -1670,7 +1670,7 @@ def TX0 : OPEN8OpReg<OP_TX0,
                      (outs),
                      (ins GPR8:$rn),
                      "cmp\t$rn",
-                     [(OPEN8cmp R0, i8:$rn), (implicit SREG)]>; 
+                     [(OPEN8cmpc R0, i8:$rn), (implicit SREG)]>; 
 
   def OR : OPEN8OpReg<OP_OR,
                      (outs),

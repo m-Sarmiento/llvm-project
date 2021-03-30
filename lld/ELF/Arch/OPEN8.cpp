@@ -99,8 +99,9 @@ void OPEN8::relocate(uint8_t *loc, const Relocation &rel, uint64_t val) const {
   // Since every jump destination is word aligned we gain an extra bit
   case R_OPEN8_PCREL: {
     checkInt(loc, val, 8, rel);
-    uint16_t val8 = (val - 2 -(uint64_t)loc) & 0xff;
-    write16le(loc+1, read16le(loc+1)| val8);
+    //uint16_t val8 = (val - 2 -(uint64_t)loc) & 0xff;
+    val &= 0xFF;
+    write16le(loc+1, read16le(loc+1)| val);
     break;
   }
 

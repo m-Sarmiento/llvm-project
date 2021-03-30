@@ -1935,10 +1935,10 @@ template <>
 bool OPEN8ExpandPseudo::expand<OPEN8::CPRdRr>(Block &MBB, BlockIt MBBI) {
   MachineInstr &MI = *MBBI;
   Register DstReg = MI.getOperand(0).getReg();
-  Register SrcReg = MI.getOperand(2).getReg();
+  Register SrcReg = MI.getOperand(1).getReg();
   //bool DstIsDead = MI.getOperand(0).isDead();
-  bool DstIsKill = MI.getOperand(1).isKill();
-  bool SrcIsKill = MI.getOperand(2).isKill();
+  bool DstIsKill = MI.getOperand(0).isKill();
+  bool SrcIsKill = MI.getOperand(1).isKill();
   //carry will lost??
   buildMI(MBB, MBBI, OPEN8::CLP).addImm(0x1);
   if(DstReg != OPEN8::R0  & SrcReg != OPEN8::R0){

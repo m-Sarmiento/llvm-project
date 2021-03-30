@@ -1,4 +1,5 @@
-//===-- OPEN8AsmBackend.cpp - OPEN8 Asm Backend  ------------------------------===//
+//===-- OPEN8AsmBackend.cpp - OPEN8 Asm Backend
+//------------------------------===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -44,7 +45,7 @@ static void signed_width(unsigned Width, uint64_t Value,
     int64_t Max = maxIntN(Width);
 
     Diagnostic += " (expected an integer in the range " + std::to_string(Min) +
-      " to " + std::to_string(Max) + ")";
+                  " to " + std::to_string(Max) + ")";
 
     if (Ctx) {
       Ctx->reportFatalError(Fixup.getLoc(), Diagnostic);
@@ -62,8 +63,8 @@ static void unsigned_width(unsigned Width, uint64_t Value,
 
     int64_t Max = maxUIntN(Width);
 
-    Diagnostic += " (expected an integer in the range 0 to " +
-      std::to_string(Max) + ")";
+    Diagnostic +=
+        " (expected an integer in the range 0 to " + std::to_string(Max) + ")";
 
     if (Ctx) {
       Ctx->reportFatalError(Fixup.getLoc(), Diagnostic);
@@ -76,7 +77,7 @@ static void unsigned_width(unsigned Width, uint64_t Value,
 /// Adjusts the value of a branch target before fixup application.
 static void adjustBranch(unsigned Size, const MCFixup &Fixup, uint64_t &Value,
                          MCContext *Ctx = nullptr) {
-  unsigned_width(Size , Value, std::string("branch target"), Fixup, Ctx);
+  unsigned_width(Size, Value, std::string("branch target"), Fixup, Ctx);
 }
 
 /// Adjusts the value of a relative branch target before fixup application.
@@ -149,16 +150,15 @@ static void ms8(unsigned Size, const MCFixup &Fixup, uint64_t &Value,
   ldi::fixup(Size, Fixup, Value, Ctx);
 }
 
-} // end of ldi namespace
-} // end of adjust namespace
+} // namespace ldi
+} // namespace adjust
 
 namespace llvm {
 
 // Prepare value for the target space for it
 void OPEN8AsmBackend::adjustFixupValue(const MCFixup &Fixup,
-                                     const MCValue &Target,
-                                     uint64_t &Value,
-                                     MCContext *Ctx) const {
+                                       const MCValue &Target, uint64_t &Value,
+                                       MCContext *Ctx) const {
   // The size of the fixup in bits.
   uint64_t Size = OPEN8AsmBackend::getFixupKindInfo(Fixup.getKind()).TargetSize;
 
@@ -235,10 +235,10 @@ OPEN8AsmBackend::createObjectTargetWriter() const {
 }
 
 void OPEN8AsmBackend::applyFixup(const MCAssembler &Asm, const MCFixup &Fixup,
-                               const MCValue &Target,
-                               MutableArrayRef<char> Data, uint64_t Value,
-                               bool IsResolved,
-                               const MCSubtargetInfo *STI) const {
+                                 const MCValue &Target,
+                                 MutableArrayRef<char> Data, uint64_t Value,
+                                 bool IsResolved,
+                                 const MCSubtargetInfo *STI) const {
   adjustFixupValue(Fixup, Target, Value, &Asm.getContext());
   if (Value == 0)
     return; // Doesn't change encoding.
@@ -263,7 +263,8 @@ void OPEN8AsmBackend::applyFixup(const MCAssembler &Asm, const MCFixup &Fixup,
   }
 }
 
-MCFixupKindInfo const &OPEN8AsmBackend::getFixupKindInfo(MCFixupKind Kind) const {
+MCFixupKindInfo const &
+OPEN8AsmBackend::getFixupKindInfo(MCFixupKind Kind) const {
   // NOTE: Many OPEN8 fixups work on sets of non-contignous bits. We work around
   // this by saying that the fixup is the size of the entire instruction.
   const static MCFixupKindInfo Infos[OPEN8::NumTargetFixupKinds] = {
@@ -320,17 +321,18 @@ bool OPEN8AsmBackend::writeNopData(raw_ostream &OS, uint64_t Count) const {
   // If the count is not 2-byte aligned, we must be writing data into the text
   // section (otherwise we have unaligned instructions, and thus have far
   // bigger problems), so just write zeros instead.
-  //assert((Count % 2) == 0 && "NOP instructions must be 2 bytes");
+  // assert((Count % 2) == 0 && "NOP instructions must be 2 bytes");
 
   OS.write_zeros(Count);
   return true;
 }
 
 bool OPEN8AsmBackend::shouldForceRelocation(const MCAssembler &Asm,
-                                          const MCFixup &Fixup,
-                                          const MCValue &Target) {
-  switch ((unsigned) Fixup.getKind()) {
-  default: return false;
+                                            const MCFixup &Fixup,
+                                            const MCValue &Target) {
+  switch ((unsigned)Fixup.getKind()) {
+  default:
+    return false;
   // Fixups which should always be recorded as relocations.
   case OPEN8::fixup_8_pcrel:
   case OPEN8::fixup_call:
@@ -339,10 +341,9 @@ bool OPEN8AsmBackend::shouldForceRelocation(const MCAssembler &Asm,
 }
 
 MCAsmBackend *createOPEN8AsmBackend(const Target &T, const MCSubtargetInfo &STI,
-                                  const MCRegisterInfo &MRI,
-                                  const llvm::MCTargetOptions &TO) {
+                                    const MCRegisterInfo &MRI,
+                                    const llvm::MCTargetOptions &TO) {
   return new OPEN8AsmBackend(STI.getTargetTriple().getOS());
 }
 
 } // end of namespace llvm
-
