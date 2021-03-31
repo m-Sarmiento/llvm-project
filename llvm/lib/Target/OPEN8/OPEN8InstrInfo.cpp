@@ -42,27 +42,16 @@ void OPEN8InstrInfo::copyPhysReg(MachineBasicBlock &MBB,
                                MachineBasicBlock::iterator MI,
                                const DebugLoc &DL, MCRegister DestReg,
                                MCRegister SrcReg, bool KillSrc) const {
-  const OPEN8Subtarget &STI = MBB.getParent()->getSubtarget<OPEN8Subtarget>();
-  const OPEN8RegisterInfo &TRI = *STI.getRegisterInfo();
+  //const OPEN8Subtarget &STI = MBB.getParent()->getSubtarget<OPEN8Subtarget>();
+  //const OPEN8RegisterInfo &TRI = *STI.getRegisterInfo();
   unsigned Opc;
 
   // Not all OPEN8 devices support the 16-bit `MOVW` instruction.
   if (OPEN8::DREGSRegClass.contains(DestReg, SrcReg)) {
-    if (STI.hasMOVW() && OPEN8::DREGSMOVWRegClass.contains(DestReg, SrcReg)) {
+    
       BuildMI(MBB, MI, DL, get(OPEN8::MOVWRdRr), DestReg)
           .addReg(SrcReg, getKillRegState(KillSrc));
-    } else {
-      Register DestLo, DestHi, SrcLo, SrcHi;
 
-      TRI.splitReg(DestReg, DestLo, DestHi);
-      TRI.splitReg(SrcReg,  SrcLo,  SrcHi);
-
-      // Copy each individual register with the `MOV` instruction.
-      BuildMI(MBB, MI, DL, get(OPEN8::MOVRdRr), DestLo)
-        .addReg(SrcLo, getKillRegState(KillSrc));
-      BuildMI(MBB, MI, DL, get(OPEN8::MOVRdRr), DestHi)
-        .addReg(SrcHi, getKillRegState(KillSrc));
-    }
   } else {
     if (OPEN8::GPR8RegClass.contains(DestReg, SrcReg)) {
       Opc = OPEN8::MOVRdRr;
@@ -530,6 +519,7 @@ bool OPEN8InstrInfo::isBranchOffsetInRange(unsigned BranchOp,
     llvm_unreachable("unexpected opcode!");
   case OPEN8::JMPk:
   case OPEN8::JSRk:
+    return isIntN(16, BrOffset);
   case OPEN8::BR1:
   case OPEN8::BR0:
   case OPEN8::BRZ:

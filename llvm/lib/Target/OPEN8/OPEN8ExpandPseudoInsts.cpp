@@ -122,7 +122,7 @@ bool OPEN8ExpandPseudo::runOnMachineFunction(MachineFunction &MF) {
 
     // Continue expanding the block until all pseudos are expanded.
     do {
-      assert(ExpandCount < 40 && "pseudo expand limit reached");
+      assert(ExpandCount < 10 && "pseudo expand limit reached");
 
       bool BlockModified = expandMBB(MBB);
       Modified |= BlockModified;
