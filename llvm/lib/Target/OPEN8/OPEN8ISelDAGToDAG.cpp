@@ -38,7 +38,7 @@ public:
   bool SelectAddr(SDNode *Op, SDValue N, SDValue &Base, SDValue &Disp);
 
   bool selectIndexedLoad(SDNode *N);
-  unsigned selectIndexedProgMemLoad(const LoadSDNode *LD, MVT VT);
+  //unsigned selectIndexedProgMemLoad(const LoadSDNode *LD, MVT VT);
 
   bool SelectInlineAsmMemoryOperand(const SDValue &Op, unsigned ConstraintCode,
                                     std::vector<SDValue> &OutOps) override;

@@ -122,7 +122,7 @@ bool OPEN8ExpandPseudo::runOnMachineFunction(MachineFunction &MF) {
 
     // Continue expanding the block until all pseudos are expanded.
     do {
-      assert(ExpandCount < 10 && "pseudo expand limit reached");
+      assert(ExpandCount < 40 && "pseudo expand limit reached");
 
       bool BlockModified = expandMBB(MBB);
       Modified |= BlockModified;
@@ -966,7 +966,7 @@ bool OPEN8ExpandPseudo::expand<OPEN8::STDWQRr>(Block &MBB, BlockIt MBBI) {
 
   // Since we add 1 to the Imm value for the high byte below, and 63 is the highest Imm value
   // allowed for the instruction, 62 is the limit here.
-  assert(Imm <= 62 && "Offset is out of range");
+  assert(Imm <= 255 && "Offset is out of range");
 
   auto MIBLO = buildMI(MBB, MBBI, OpLo)
     .addReg(DstReg)
@@ -1966,20 +1966,17 @@ template <>
 bool OPEN8ExpandPseudo::expand<OPEN8::MOVRdRr>(Block &MBB, BlockIt MBBI) {
   MachineInstr &MI = *MBBI;
   Register DstReg = MI.getOperand(0).getReg();
-  Register SrcReg = MI.getOperand(2).getReg();
-  bool DstIsDead = MI.getOperand(0).isDead();
-  //bool DstIsKill = MI.getOperand(1).isKill();
-  bool SrcIsKill = MI.getOperand(2).isKill();
+  Register SrcReg = MI.getOperand(1).getReg();
+  //bool DstIsDead = MI.getOperand(0).isDead();
+  bool DstIsKill = MI.getOperand(1).isKill();
+  bool SrcIsKill = MI.getOperand(1).isKill();
   //bool ImpIsDead = MI.getOperand(3).isDead();
 
-  if(DstReg != OPEN8::R0  & SrcReg != OPEN8::R0){
-    buildMI(MBB, MBBI, OPEN8::TX0).addReg(SrcReg, getKillRegState(SrcIsKill));
-    buildMI(MBB, MBBI, OPEN8::T0X).addReg(DstReg, RegState::Define | getDeadRegState(DstIsDead));
-  } else if (DstReg == OPEN8::R0 & SrcReg != OPEN8::R0){
-    buildMI(MBB, MBBI, OPEN8::TX0).addReg(SrcReg, getKillRegState(SrcIsKill));
-  } else if (DstReg != OPEN8::R0 & SrcReg == OPEN8::R0){
-    buildMI(MBB, MBBI, OPEN8::T0X).addReg(DstReg, RegState::Define | getDeadRegState(DstIsDead));
-  } 
+  if(SrcReg != OPEN8::R0 )
+  buildMI(MBB, MBBI, OPEN8::TX0).addReg(SrcReg, getKillRegState(SrcIsKill));
+  if(DstReg != OPEN8::R0 )
+  buildMI(MBB, MBBI, OPEN8::T0X).addReg(DstReg, getKillRegState(DstIsKill));
+
   MI.eraseFromParent();
   return true;
 }
