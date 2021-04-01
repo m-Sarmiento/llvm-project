@@ -2147,9 +2147,9 @@ bool OPEN8ExpandPseudo::expand<OPEN8::LSRRd>(Block &MBB, BlockIt MBBI){
   //bool DstIsDead = MI.getOperand(0).isDead();
 
   Op1 = OPEN8::CLP;
-  Op2 = OPEN8::RORBRd;
+  Op2 = OPEN8::RORRd;
 
-  buildMI(MBB, MBBI, Op1).addImm(0x1);
+  buildMI(MBB, MBBI, Op1).addImm(0x1); //clear caarry
 
   buildMI(MBB, MBBI, Op2)
     .addReg(DstReg, getKillRegState(DstIsKill));
@@ -2167,9 +2167,11 @@ bool OPEN8ExpandPseudo::expand<OPEN8::ASRRd>(Block &MBB, BlockIt MBBI){
   //bool DstIsDead = MI.getOperand(0).isDead();
 
   buildMI(MBB, MBBI, OPEN8::CLP).addImm(0x1);
-  buildMI(MBB, MBBI, OPEN8::BR0).addImm(2).addImm(3); //BRANCH
+  buildMI(MBB, MBBI, OPEN8::TX0).addReg(DstReg);
+  buildMI(MBB, MBBI, OPEN8::BTT).addImm(0x7);
+  buildMI(MBB, MBBI, OPEN8::BR0).addImm(0).addImm(3); //BRANCH ZERO
   buildMI(MBB, MBBI, OPEN8::STP).addImm(0x1);
-  buildMI(MBB, MBBI, OPEN8::RORBRd)
+  buildMI(MBB, MBBI, OPEN8::RORRd)
     .addReg(DstReg, getKillRegState(DstIsKill));
 
   MI.eraseFromParent();

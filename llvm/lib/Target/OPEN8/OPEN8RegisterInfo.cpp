@@ -189,40 +189,36 @@ void OPEN8RegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
     New->getOperand(3).setIsDead();*/
     return;
   }
-/*
+
   // If the offset is too big we have to adjust and restore the frame pointer
   // to materialize a valid load/store with displacement.
   //:TODO: consider using only one adiw/sbiw chain for more than one frame index
-  if (Offset > 62) {
-    unsigned AddOpc = OPEN8::ADIWRdK, SubOpc = OPEN8::SBIWRdK;
-    int AddOffset = Offset - 63 + 1;
-    // For huge offsets where adiw/sbiw cannot be used use a pair of subi/sbci.
-    if ((Offset - 63 + 1) > 63) {
-      AddOpc = OPEN8::SUBIWRdK;
-      SubOpc = OPEN8::SUBIWRdK;
-      AddOffset = -AddOffset;
-    }
+  //// Always case For huge offsets where adiw/sbiw cannot be used use a pair of subi/sbci.
+  if (Offset > 254) {
+    assert(true && "psr posible lost");
+    unsigned SubOpc = OPEN8::SUBIWRdK;
+    int AddOffset = -(Offset - 255 + 1);
     // It is possible that the spiller places this frame instruction in between
     // a compare and branch, invalidating the contents of SREG set by the
     // compare instruction because of the add/sub pairs. Conservatively save and
     // restore SREG before and after each add/sub pair.
-    BuildMI(MBB, II, dl, TII.get(OPEN8::INRdA), OPEN8::R0).addImm(0x3f);
-    MachineInstr *New = BuildMI(MBB, II, dl, TII.get(AddOpc), OPEN8::R7R6)
+    // OPEN8 dont support save or restore PSR, maybe will lost it
+    //BuildMI(MBB, II, dl, TII.get(OPEN8::INRdA), OPEN8::R0).addImm(0x3f);
+    MachineInstr *New = BuildMI(MBB, II, dl, TII.get(SubOpc), OPEN8::R7R6)
                             .addReg(OPEN8::R7R6, RegState::Kill)
                             .addImm(AddOffset);
     New->getOperand(3).setIsDead();
     // Restore SREG.
-    BuildMI(MBB, std::next(II), dl, TII.get(OPEN8::OUTARr))
-        .addImm(0x3f)
-        .addReg(OPEN8::R0, RegState::Kill);
+    //BuildMI(MBB, std::next(II), dl, TII.get(OPEN8::OUTARr))
+    //    .addImm(0x3f)
+    //    .addReg(OPEN8::R0, RegState::Kill);
     // No need to set SREG as dead here otherwise if the next instruction is a
     // cond branch it will be using a dead register.
     BuildMI(MBB, std::next(II), dl, TII.get(SubOpc), OPEN8::R7R6)
         .addReg(OPEN8::R7R6, RegState::Kill)
-        .addImm(Offset - 63 + 1);
-    Offset = 62;
+        .addImm(Offset - 255 + 1);
+    Offset = 254;
   }
-*/
 
   MI.getOperand(FIOperandNum).ChangeToRegister(OPEN8::R7R6, false);
   assert(isUInt<8>(Offset) && "Offset is out of range");
