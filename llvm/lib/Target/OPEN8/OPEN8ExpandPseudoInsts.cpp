@@ -1906,10 +1906,10 @@ template <>
 bool OPEN8ExpandPseudo::expand<OPEN8::CPCRdRr>(Block &MBB, BlockIt MBBI) {
   MachineInstr &MI = *MBBI;
   Register DstReg = MI.getOperand(0).getReg();
-  Register SrcReg = MI.getOperand(2).getReg();
+  Register SrcReg = MI.getOperand(1).getReg();
   //bool DstIsDead = MI.getOperand(0).isDead();
-  bool DstIsKill = MI.getOperand(1).isKill();
-  bool SrcIsKill = MI.getOperand(2).isKill();
+  bool DstIsKill = MI.getOperand(0).isKill();
+  bool SrcIsKill = MI.getOperand(1).isKill();
   if(DstReg != OPEN8::R0  & SrcReg != OPEN8::R0){
     buildMI(MBB, MBBI, OPEN8::TX0).addReg(DstReg, getKillRegState(DstIsKill));
     buildMI(MBB, MBBI, OPEN8::CMP).addReg(SrcReg,getKillRegState(SrcIsKill));
@@ -2303,6 +2303,7 @@ bool OPEN8ExpandPseudo::expandMI(Block &MBB, BlockIt MBBI) {
     EXPAND(OPEN8::LSRRd);
     EXPAND(OPEN8::LDDRdQ);
     EXPAND(OPEN8::STDQRr);
+    EXPAND(OPEN8::STRr);
     //EXPAND(OPEN8::RORRd);
     EXPAND(OPEN8::SWAPRd);
   case OPEN8::LDDWRdYQ: //:FIXME: remove this once PR13375 gets fixed

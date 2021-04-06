@@ -182,7 +182,7 @@ void OPEN8FrameLowering::emitEpilogue(MachineFunction &MF,
 
   // Early exit if there is no need to restore the frame pointer.
   //TODO: fix framesize aligment
-  if (!FrameSize-1) {
+  if (!(FrameSize-1)) {
     //restoreStatusRegister(MF, MBB);
     return;
   }
@@ -387,38 +387,38 @@ MachineBasicBlock::iterator OPEN8FrameLowering::eliminateCallFramePseudoInstr(
       // relevant values directly to the stack. However, doing that correctly
       // (in the right order, possibly skipping some empty space for undef
       // values, etc) is tricky and thus left to be optimized in the future.
-      /*BuildMI(MBB, MI, DL, TII.get(OPEN8::SPREAD), OPEN8::R7R6).addReg(OPEN8::SP);
+      BuildMI(MBB, MI, DL, TII.get(OPEN8::SPREAD), OPEN8::R5R4).addReg(OPEN8::SP);
 
-      MachineInstr *New = BuildMI(MBB, MI, DL, TII.get(OPEN8::SUBIWRdK), OPEN8::R7R6)
-                              .addReg(OPEN8::R7R6, RegState::Kill)
+      MachineInstr *New = BuildMI(MBB, MI, DL, TII.get(OPEN8::SUBIWRdK), OPEN8::R5R4)
+                              .addReg(OPEN8::R5R4, RegState::Kill)
                               .addImm(Amount);
       New->getOperand(3).setIsDead();
 
       BuildMI(MBB, MI, DL, TII.get(OPEN8::SPWRITE), OPEN8::SP)
-          .addReg(OPEN8::R7R6);*/
+          .addReg(OPEN8::R5R4);
 
       // Make sure the remaining stack stores are converted to real store
       // instructions.
-      fixStackStores(MBB, MI, TII, OPEN8::R7R6); //true
+      fixStackStores(MBB, MI, TII, OPEN8::R5R4); //true
     } else {
       assert(Opcode == TII.getCallFrameDestroyOpcode());
 
       // Note that small stack changes could be implemented more efficiently
       // with a few pop instructions instead of the 8-9 instructions now
       // required.
-      BuildMI(MBB, MI, DL, TII.get(OPEN8::SPREAD), OPEN8::R7R6).addReg(OPEN8::SP);
+      BuildMI(MBB, MI, DL, TII.get(OPEN8::SPREAD), OPEN8::R5R4).addReg(OPEN8::SP);
       if (Amount == 1){
       BuildMI(MBB, MI, DL, TII.get(OPEN8::UPP))
-                         .addReg(OPEN8::R7R6, RegState::Kill);
+                         .addReg(OPEN8::R5R4, RegState::Kill);
       } else {
       Amount = -Amount;
-      MachineInstr *New = BuildMI(MBB, MI, DL, TII.get(OPEN8::SUBIWRdK), OPEN8::R7R6)
-                              .addReg(OPEN8::R7R6, RegState::Kill)
+      MachineInstr *New = BuildMI(MBB, MI, DL, TII.get(OPEN8::SUBIWRdK), OPEN8::R5R4)
+                              .addReg(OPEN8::R5R4, RegState::Kill)
                               .addImm(Amount);
       New->getOperand(3).setIsDead();
       }
       BuildMI(MBB, MI, DL, TII.get(OPEN8::SPWRITE), OPEN8::SP)
-          .addReg(OPEN8::R7R6, RegState::Kill);
+          .addReg(OPEN8::R5R4, RegState::Kill);
     }
   }
 

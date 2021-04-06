@@ -739,8 +739,7 @@ let isCall = 1 in
                 (outs),
                      (ins call_target:$addr),
                      "jsr\t$addr",
-                     [(OPEN8call imm:$addr)]>,
-              Requires<[HasJMPCALL]>;
+                     [(OPEN8call imm:$addr)]>;
 }
 
 //===----------------------------------------------------------------------===//

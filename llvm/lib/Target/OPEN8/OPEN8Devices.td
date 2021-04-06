@@ -143,7 +143,7 @@ def ELFArchOPEN81    : ELFArch<"EF_OPEN8_ARCH_OPEN81">;
 // device should have.
 def FamilyOPEN80           : Family<"open80", []>;
 
-def FamilyOPEN81           : Family<"open81", [FeatureNEW, FeatureSRAM, FamilyOPEN80, FeatureLPM, FeatureMMR, FeatureSmallStack, ]>;
+def FamilyOPEN81           : Family<"open81", [FeatureNEW, FeatureSRAM, FamilyOPEN80, FeatureJMPCALL, FeatureLPM, FeatureMMR, FeatureSmallStack, FeatureSmallStack, ]>;
 
 //===---------------------------------------------------------------------===//
 // OPEN8 microcontrollers supported.

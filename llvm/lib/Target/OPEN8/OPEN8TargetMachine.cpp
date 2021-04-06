@@ -25,7 +25,7 @@
 
 namespace llvm {
 
-static const char *OPEN8DataLayout = "e-P0-p:16:8-i8:8-i16:8-i24:8-i32:8-i64:8-i128:8-f32:8-f64:8-n8-a:8";
+static const char *OPEN8DataLayout = "e-p:16:8-i8:8-i16:8-i24:8-i32:8-i64:8-i128:8-f32:8-f64:8-n8-a:8";
 
 /// Processes a CPU name.
 static StringRef getCPU(StringRef CPU) {

@@ -175,18 +175,18 @@ void OPEN8RegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
     if (II != MBB.end())
       foldFrameOffset(II, Offset, DstReg);
 
-    Offset = -Offset;
+    /*Offset = -Offset;
     MachineInstr *New = BuildMI(MBB, II, dl, TII.get(OPEN8::SUBIWRdK), DstReg)
                             .addReg(DstReg, RegState::Kill)
                             .addImm(Offset);
-    New->getOperand(3).setIsDead();
-    /*BuildMI(MBB, II, dl, TII.get(OPEN8::LDIW), OPEN8::R1R0)
+    New->getOperand(3).setIsDead();*/
+    BuildMI(MBB, II, dl, TII.get(OPEN8::LDIWRdk), OPEN8::R1R0)
                             .addImm(Offset);
 
     MachineInstr *New = BuildMI(MBB, II, dl, TII.get(OPEN8::ADDWRdRr), DstReg)
                             .addReg(DstReg, RegState::Kill)
                             .addReg(OPEN8::R1R0, RegState::Kill);
-    New->getOperand(3).setIsDead();*/
+    New->getOperand(3).setIsDead();
     return;
   }
 
