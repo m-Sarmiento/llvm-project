@@ -76,7 +76,7 @@ void OPEN8::relocate(uint8_t *loc, const Relocation &rel, uint64_t val) const {
     // Note: this relocation is often used between code and data space, which
     // are 0x800000 apart in the output ELF file. The bitmask cuts off the high
     // bit.
-    write16le(loc, val & 0xffff);
+    write16le(loc+1, val & 0xffff);
     break;
   case R_OPEN8_32:
     checkUInt(loc, val, 32, rel);
