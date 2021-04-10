@@ -1,5 +1,4 @@
-//===-- OPEN8AsmBackend.cpp - OPEN8 Asm Backend
-//------------------------------===//
+//===-- OPEN8AsmBackend.cpp - OPEN8 Asm Backend  ------------------------------===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -45,7 +44,7 @@ static void signed_width(unsigned Width, uint64_t Value,
     int64_t Max = maxIntN(Width);
 
     Diagnostic += " (expected an integer in the range " + std::to_string(Min) +
-                  " to " + std::to_string(Max) + ")";
+      " to " + std::to_string(Max) + ")";
 
     if (Ctx) {
       Ctx->reportFatalError(Fixup.getLoc(), Diagnostic);
@@ -63,8 +62,8 @@ static void unsigned_width(unsigned Width, uint64_t Value,
 
     int64_t Max = maxUIntN(Width);
 
-    Diagnostic +=
-        " (expected an integer in the range 0 to " + std::to_string(Max) + ")";
+    Diagnostic += " (expected an integer in the range 0 to " +
+      std::to_string(Max) + ")";
 
     if (Ctx) {
       Ctx->reportFatalError(Fixup.getLoc(), Diagnostic);
@@ -150,15 +149,16 @@ static void ms8(unsigned Size, const MCFixup &Fixup, uint64_t &Value,
   ldi::fixup(Size, Fixup, Value, Ctx);
 }
 
-} // namespace ldi
-} // namespace adjust
+} // end of ldi namespace
+} // end of adjust namespace
 
 namespace llvm {
 
 // Prepare value for the target space for it
 void OPEN8AsmBackend::adjustFixupValue(const MCFixup &Fixup,
-                                       const MCValue &Target, uint64_t &Value,
-                                       MCContext *Ctx) const {
+                                     const MCValue &Target,
+                                     uint64_t &Value,
+                                     MCContext *Ctx) const {
   // The size of the fixup in bits.
   uint64_t Size = OPEN8AsmBackend::getFixupKindInfo(Fixup.getKind()).TargetSize;
 
@@ -235,10 +235,10 @@ OPEN8AsmBackend::createObjectTargetWriter() const {
 }
 
 void OPEN8AsmBackend::applyFixup(const MCAssembler &Asm, const MCFixup &Fixup,
-                                 const MCValue &Target,
-                                 MutableArrayRef<char> Data, uint64_t Value,
-                                 bool IsResolved,
-                                 const MCSubtargetInfo *STI) const {
+                               const MCValue &Target,
+                               MutableArrayRef<char> Data, uint64_t Value,
+                               bool IsResolved,
+                               const MCSubtargetInfo *STI) const {
   adjustFixupValue(Fixup, Target, Value, &Asm.getContext());
   if (Value == 0)
     return; // Doesn't change encoding.
@@ -328,11 +328,10 @@ bool OPEN8AsmBackend::writeNopData(raw_ostream &OS, uint64_t Count) const {
 }
 
 bool OPEN8AsmBackend::shouldForceRelocation(const MCAssembler &Asm,
-                                            const MCFixup &Fixup,
-                                            const MCValue &Target) {
-  switch ((unsigned)Fixup.getKind()) {
-  default:
-    return false;
+                                          const MCFixup &Fixup,
+                                          const MCValue &Target) {
+  switch ((unsigned) Fixup.getKind()) {
+  default: return false;
   // Fixups which should always be recorded as relocations.
   case OPEN8::fixup_8_pcrel:
   case OPEN8::fixup_call:
@@ -341,8 +340,8 @@ bool OPEN8AsmBackend::shouldForceRelocation(const MCAssembler &Asm,
 }
 
 MCAsmBackend *createOPEN8AsmBackend(const Target &T, const MCSubtargetInfo &STI,
-                                    const MCRegisterInfo &MRI,
-                                    const llvm::MCTargetOptions &TO) {
+                                  const MCRegisterInfo &MRI,
+                                  const llvm::MCTargetOptions &TO) {
   return new OPEN8AsmBackend(STI.getTargetTriple().getOS());
 }
 

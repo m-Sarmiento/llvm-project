@@ -63,7 +63,7 @@ RelExpr OPEN8::getRelExpr(RelType type, const Symbol &s,
 }
 
 static void writeLDI(uint8_t *loc, uint64_t val) {
-  write16le(loc, read16le(loc) | val );
+  write16le(loc+1, read16le(loc+1) | val );
 }
 
 void OPEN8::relocate(uint8_t *loc, const Relocation &rel, uint64_t val) const {
@@ -84,7 +84,7 @@ void OPEN8::relocate(uint8_t *loc, const Relocation &rel, uint64_t val) const {
     break;
 
   case R_OPEN8_LO8_LDI_NEG:
-    writeLDI(loc, -val & 0xff);
+    writeLDI(loc, (-val) & 0xff);
     break;
   case R_OPEN8_LO8_LDI:
     writeLDI(loc, val & 0xff);
@@ -96,12 +96,13 @@ void OPEN8::relocate(uint8_t *loc, const Relocation &rel, uint64_t val) const {
     writeLDI(loc, (val >> 8) & 0xff);
     break;
 
-  // Since every jump destination is word aligned we gain an extra bit
+  // Since 
+  
   case R_OPEN8_PCREL: {
     checkInt(loc, val, 8, rel);
-    //uint16_t val8 = (val - 2 -(uint64_t)loc) & 0xff;
-    val &= 0xFF;
-    write16le(loc+1, read16le(loc+1)| val);
+    uint16_t val8 = (val - 2 );    
+    val8 &= 0xFF;
+    write16le(loc+1, read16le(loc+1)| val8);
     break;
   }
 

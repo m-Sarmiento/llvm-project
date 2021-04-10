@@ -65,6 +65,11 @@ CoveredBySubRegs = 1 in
   def R5R4   : OPEN8Reg<4,  "r5:r4",   [R4, R5]>,   DwarfRegNum<[4]>;
   def R3R2   : OPEN8Reg<2,  "r3:r2",   [R2, R3]>,   DwarfRegNum<[2]>;
   def R1R0   : OPEN8Reg<0,  "r1:r0",   [R0, R1]>,   DwarfRegNum<[0]>;
+
+  // Pseudo registers for unaligned i16
+  def R6R5 : OPEN8Reg<15, "r16:r15", [R5, R6]>, DwarfRegNum<[15]>;
+  def R4R3 : OPEN8Reg<13, "r14:r13", [R3, R4]>, DwarfRegNum<[13]>;
+  def R2R1 : OPEN8Reg<11, "r12:r11", [R1, R2]>, DwarfRegNum<[11]>;
 }
 
 //===----------------------------------------------------------------------===//
@@ -98,7 +103,9 @@ def LD8lo : RegisterClass<"OPEN8", [i8], 8,
 // Main 16-bit pair register class.
 def DREGS : RegisterClass<"OPEN8", [i16], 8,
   (
-    add R7R6, R5R4, R3R2, R1R0
+    add R7R6, R5R4, R3R2, R1R0,
+    //PSEUDO
+    R2R1, R4R3, R6R5
   )>;
 
 // 16-bit pair register class for movw

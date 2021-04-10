@@ -247,34 +247,102 @@ bool OPEN8ExpandPseudo::expand<OPEN8::SUBWRdRr>(Block &MBB, BlockIt MBBI) {
 }
 
 template <>
+bool OPEN8ExpandPseudo::expand<OPEN8::SBCIRdK>(Block &MBB, BlockIt MBBI) {
+  MachineInstr &MI = *MBBI;
+  Register DstReg = MI.getOperand(0).getReg();
+  Register SrcReg = MI.getOperand(1).getReg();
+  unsigned imm = MI.getOperand(2).getImm();
+  bool DstIsDead = MI.getOperand(0).isDead();
+  //bool DstIsKill = MI.getOperand(0).isKill();
+  bool SrcIsDead = MI.getOperand(1).isDead();
+  bool SrcIsKill = MI.getOperand(1).isKill();
+  unsigned Op0 = OPEN8::TX0;
+  unsigned Op1 = OPEN8::LDIRdk;
+  unsigned Op2 = OPEN8::SBC;
+  unsigned Op3 = OPEN8::T0X;
+
+  if(SrcReg != OPEN8::R0 ){
+    buildMI(MBB, MBBI, Op0).addReg(SrcReg, RegState::Define | getDeadRegState(SrcIsDead));  
+  } else{
+    llvm_unreachable("src can't be r0");
+  }
+  buildMI(MBB, MBBI, Op1).addReg(SrcReg).addImm(imm);
+
+  buildMI(MBB, MBBI, Op2).addReg(SrcReg,getKillRegState(SrcIsKill));
+
+  if(DstReg != OPEN8::R0 ){
+    buildMI(MBB, MBBI, Op3).addReg(DstReg, RegState::Define | getDeadRegState(DstIsDead));  
+  }
+  
+  MI.eraseFromParent();
+  return true;
+}
+
+template <>
+bool OPEN8ExpandPseudo::expand<OPEN8::SUBIRdK>(Block &MBB, BlockIt MBBI) {
+  MachineInstr &MI = *MBBI;
+  Register DstReg = MI.getOperand(0).getReg();
+  Register SrcReg = MI.getOperand(1).getReg();
+  unsigned imm = MI.getOperand(2).getImm();
+  bool DstIsDead = MI.getOperand(0).isDead();
+  //bool DstIsKill = MI.getOperand(0).isKill();
+  bool SrcIsDead = MI.getOperand(1).isDead();
+  bool SrcIsKill = MI.getOperand(1).isKill();
+  unsigned Op0 = OPEN8::TX0;
+  unsigned Op1 = OPEN8::LDIRdk;
+  unsigned Op2 = OPEN8::CLP;
+  unsigned Op3 = OPEN8::SBC;
+  unsigned Op4 = OPEN8::T0X;
+
+  if(SrcReg != OPEN8::R0 ){
+    buildMI(MBB, MBBI, Op0).addReg(SrcReg, RegState::Define | getDeadRegState(SrcIsDead));  
+  } else{
+    llvm_unreachable("src can't be r0");
+  }
+  buildMI(MBB, MBBI, Op1).addReg(SrcReg).addImm(imm);
+  buildMI(MBB, MBBI, Op2).addImm(1);
+  buildMI(MBB, MBBI, Op3).addReg(SrcReg,getKillRegState(SrcIsKill));
+
+  if(DstReg != OPEN8::R0 ){
+    buildMI(MBB, MBBI, Op4).addReg(DstReg, RegState::Define | getDeadRegState(DstIsDead));  
+  }
+  
+  MI.eraseFromParent();
+  return true;
+}
+
+template <>
 bool OPEN8ExpandPseudo::expand<OPEN8::SUBIWRdK>(Block &MBB, BlockIt MBBI) {
   MachineInstr &MI = *MBBI;
-  //Register DstLoReg, DstHiReg;
+  Register DstLoReg, DstHiReg;
   Register DstReg = MI.getOperand(0).getReg();
   bool DstIsDead = MI.getOperand(0).isDead();
   bool SrcIsKill = MI.getOperand(1).isKill();
   bool ImpIsDead = MI.getOperand(3).isDead();
+  TRI->splitReg(DstReg, DstLoReg, DstHiReg);
+  auto MIBLO = buildMI(MBB, MBBI, OPEN8::SUBIRdK)
+    .addReg(DstLoReg, RegState::Define | getDeadRegState(DstIsDead))
+    .addReg(DstLoReg, getKillRegState(SrcIsKill));
 
-  auto MIBLO = buildMI(MBB, MBBI, OPEN8::LDIWRdk)
-    .addReg(OPEN8::R1R0, RegState::Define | getDeadRegState(DstIsDead));
-
-  auto MIBHI = buildMI(MBB, MBBI, OPEN8::SUBWRdRr)
-    .addReg(DstReg, RegState::Define | getDeadRegState(DstIsDead))
-    .addReg(DstReg, getKillRegState(SrcIsKill))
-    .addReg(OPEN8::R1R0);
+  auto MIBHI = buildMI(MBB, MBBI, OPEN8::SBCIRdK)
+    .addReg(DstHiReg, RegState::Define | getDeadRegState(DstIsDead))
+    .addReg(DstHiReg, getKillRegState(SrcIsKill));
 
   switch (MI.getOperand(2).getType()) {
-  /*case MachineOperand::MO_GlobalAddress: {
-    const GlobalValue *GV = MI.getOperand(2).getGlobal();
+  case MachineOperand::MO_GlobalAddress: {
+    llvm_unreachable("MachineOperand::MO_GlobalAddress");
+    break;
+    /*const GlobalValue *GV = MI.getOperand(2).getGlobal();
     int64_t Offs = MI.getOperand(2).getOffset();
     unsigned TF = MI.getOperand(2).getTargetFlags();
     MIBLO.addGlobalAddress(GV, Offs, TF | AVRII::MO_NEG | AVRII::MO_LO);
     MIBHI.addGlobalAddress(GV, Offs, TF | AVRII::MO_NEG | AVRII::MO_HI);
-    break;
-  }*/
+    break;*/
+  }
   case MachineOperand::MO_Immediate: {
     unsigned Imm = MI.getOperand(2).getImm();
-    MIBLO.addImm(Imm & 0xffff);
+    MIBLO.addImm(Imm & 0xff);
+    MIBHI.addImm((Imm >> 8) & 0xff);
     break;
   }
   default:
@@ -395,12 +463,52 @@ bool OPEN8ExpandPseudo::expand<OPEN8::SBCRdRr>(Block &MBB, BlockIt MBBI) {
 
 template <>
 bool OPEN8ExpandPseudo::expand<OPEN8::MULRdRr>(Block &MBB, BlockIt MBBI) {
-  return expandMoveAcc(OPEN8::MUL, MBB, MBBI);
+  MachineInstr &MI = *MBBI;
+  unsigned Op0, Op1;
+  Register DstReg = MI.getOperand(0).getReg();
+  Register SrcReg = MI.getOperand(1).getReg();
+  bool DstIsKill = MI.getOperand(0).isKill();
+  bool SrcIsKill = MI.getOperand(1).isKill();
+  /*unsigned DstReg = MI.getOperand(0).getReg();
+  unsigned SrcReg = MI.getOperand(2).getReg();
+  bool DstIsKill = MI.getOperand(0).isKill();
+  bool SrcIsKill = MI.getOperand(2).isKill();*/
+  Op0 = OPEN8::TX0;
+  Op1 = OPEN8::MUL;
+  if(SrcReg != OPEN8::R0 ){
+    /*auto MI1 = */buildMI(MBB, MBBI, Op0)
+    .addReg(SrcReg, getKillRegState(SrcIsKill));
+  }
+  /*auto MI2 = */buildMI(MBB, MBBI, Op1)
+    .addReg(DstReg, getKillRegState(DstIsKill));
+
+  MI.eraseFromParent();
+  return true;
 }
 
 template <>
 bool OPEN8ExpandPseudo::expand<OPEN8::MULSRdRr>(Block &MBB, BlockIt MBBI) {
-  return expandMoveAcc(OPEN8::MUL, MBB, MBBI);
+  MachineInstr &MI = *MBBI;
+  unsigned Op0, Op1;
+  Register DstReg = MI.getOperand(0).getReg();
+  Register SrcReg = MI.getOperand(1).getReg();
+  bool DstIsKill = MI.getOperand(0).isKill();
+  bool SrcIsKill = MI.getOperand(1).isKill();
+  /*unsigned DstReg = MI.getOperand(0).getReg();
+  unsigned SrcReg = MI.getOperand(2).getReg();
+  bool DstIsKill = MI.getOperand(0).isKill();
+  bool SrcIsKill = MI.getOperand(2).isKill();*/
+  Op0 = OPEN8::TX0;
+  Op1 = OPEN8::MUL;
+  if(SrcReg != OPEN8::R0 ){
+    /*auto MI1 = */buildMI(MBB, MBBI, Op0)
+    .addReg(SrcReg, getKillRegState(SrcIsKill));
+  }
+  /*auto MI2 = */buildMI(MBB, MBBI, Op1)
+    .addReg(DstReg, getKillRegState(DstIsKill));
+
+  MI.eraseFromParent();
+  return true;
 }
 
 template <>
@@ -678,7 +786,7 @@ bool OPEN8ExpandPseudo::expand<OPEN8::LDWRd>(Block &MBB, BlockIt MBBI) {
   // Load low byte.
   auto MIBLO = buildMI(MBB, MBBI, OpLo)
                    .addReg(CurDstLoReg, RegState::Define)
-                   .addReg(SrcReg);
+                   .addReg(SrcReg, RegState::Define);
 
   // Push low byte onto stack if necessary.
   if (TmpReg)
@@ -1912,20 +2020,24 @@ bool OPEN8ExpandPseudo::expand<OPEN8::CPCRdRr>(Block &MBB, BlockIt MBBI) {
   bool SrcIsKill = MI.getOperand(1).isKill();
   if(DstReg != OPEN8::R0  & SrcReg != OPEN8::R0){
     buildMI(MBB, MBBI, OPEN8::TX0).addReg(DstReg, getKillRegState(DstIsKill));
-    buildMI(MBB, MBBI, OPEN8::CMP).addReg(SrcReg,getKillRegState(SrcIsKill));
+    buildMI(MBB, MBBI, OPEN8::SBC).addReg(SrcReg,getKillRegState(SrcIsKill));
   } else if (DstReg == OPEN8::R0 & SrcReg != OPEN8::R0){
-    buildMI(MBB, MBBI, OPEN8::CMP).addReg(DstReg,getKillRegState(SrcIsKill));
+    //push and pop r0
+    buildMI(MBB, MBBI, OPEN8::PUSHRr).addReg(OPEN8::R0);
+    buildMI(MBB, MBBI, OPEN8::SBC).addReg(DstReg,getKillRegState(SrcIsKill));
+    buildMI(MBB, MBBI, OPEN8::POPRd).addReg(OPEN8::R0);
   } else if (DstReg != OPEN8::R0 & SrcReg == OPEN8::R0){
+    buildMI(MBB, MBBI, OPEN8::PUSHRr).addReg(OPEN8::R0);
     buildMI(MBB, MBBI, OPEN8::PUSHRr).addReg(OPEN8::R0);
     buildMI(MBB, MBBI, OPEN8::TX0).addReg(DstReg, getKillRegState(DstIsKill));
     buildMI(MBB, MBBI, OPEN8::POPRd).addReg(DstReg);
-    buildMI(MBB, MBBI, OPEN8::CMP).addReg(DstReg,getKillRegState(DstIsKill));
-    //restart value to the registers
-    buildMI(MBB, MBBI, OPEN8::PUSHRr).addReg(OPEN8::R0);
+    buildMI(MBB, MBBI, OPEN8::SBC).addReg(DstReg,getKillRegState(DstIsKill));
     buildMI(MBB, MBBI, OPEN8::TX0).addReg(DstReg, getKillRegState(DstIsKill));
     buildMI(MBB, MBBI, OPEN8::POPRd).addReg(DstReg);
   } else {
-    buildMI(MBB, MBBI, OPEN8::CMP).addReg(DstReg,getKillRegState(DstIsKill));
+    buildMI(MBB, MBBI, OPEN8::PUSHRr).addReg(DstReg);
+    buildMI(MBB, MBBI, OPEN8::SBC).addReg(DstReg,getKillRegState(DstIsKill));
+    buildMI(MBB, MBBI, OPEN8::POPRd).addReg(DstReg);
   }
   MI.eraseFromParent();
   return true;
@@ -2114,30 +2226,6 @@ bool OPEN8ExpandPseudo::expand<OPEN8::STPiRr>(Block &MBB, BlockIt MBBI) {
   return true;
 }
 
-/*template <>
-bool OPEN8ExpandPseudo::expand<OPEN8::STDQRr>(Block &MBB, BlockIt MBBI) {
-  MachineInstr &MI = *MBBI;
-  Register sp = MI.getOperand(0).getReg();
-  unsigned Imm = MI.getOperand(1).getImm();
-  Register Reg = MI.getOperand(2).getReg();
-  unsigned spIsKill = MI.getOperand(0).isKill();
-  unsigned RegIsKill = MI.getOperand(2).isKill();
-
-  unsigned Op0 = OPEN8::TX0;
-  unsigned Op1 = OPEN8::STO;
-
-  if (Reg != OPEN8::R0)
-  buildMI(MBB, MBBI, Op0)
-    .addReg(Reg, getKillRegState(RegIsKill));
-
-  buildMI(MBB, MBBI, Op1)
-    .addReg(sp, getKillRegState(spIsKill))
-    .addImm(Imm);
-
-  MI.eraseFromParent();
-  return true;
-}*/
-
 template <>
 bool OPEN8ExpandPseudo::expand<OPEN8::LSRRd>(Block &MBB, BlockIt MBBI){
   MachineInstr &MI = *MBBI;
@@ -2284,6 +2372,8 @@ bool OPEN8ExpandPseudo::expandMI(Block &MBB, BlockIt MBBI) {
     EXPAND(OPEN8::LDWRdPi);
     EXPAND(OPEN8::ADDRdRr);
     EXPAND(OPEN8::ADCRdRr);
+    EXPAND(OPEN8::SBCIRdK);
+    EXPAND(OPEN8::SUBIRdK);
     EXPAND(OPEN8::SUBRdRr);
     EXPAND(OPEN8::SBCRdRr);
     EXPAND(OPEN8::ANDRdRr);
@@ -2317,19 +2407,19 @@ bool OPEN8ExpandPseudo::expandMI(Block &MBB, BlockIt MBBI) {
     EXPAND(OPEN8::ROLBRd);
     EXPAND(OPEN8::RORBRd);
     EXPAND(OPEN8::LSLWRd);
-    EXPAND(OPEN8::LSLW4Rd);
+    //EXPAND(OPEN8::LSLW4Rd);
     EXPAND(OPEN8::LSLW8Rd);
-    EXPAND(OPEN8::LSLW12Rd);
+    //EXPAND(OPEN8::LSLW12Rd);
     EXPAND(OPEN8::LSRWRd);
-    EXPAND(OPEN8::LSRW4Rd);
-    EXPAND(OPEN8::LSRW8Rd);
-    EXPAND(OPEN8::LSRW12Rd);
+    //EXPAND(OPEN8::LSRW4Rd);
+    //EXPAND(OPEN8::LSRW8Rd);
+    //EXPAND(OPEN8::LSRW12Rd);
     EXPAND(OPEN8::RORWRd);
     EXPAND(OPEN8::ROLWRd);
     EXPAND(OPEN8::ASRWRd);
     EXPAND(OPEN8::ASRW8Rd);
-    EXPAND(OPEN8::LSLB7Rd);
-    EXPAND(OPEN8::LSRB7Rd);
+    //EXPAND(OPEN8::LSLB7Rd);
+    //EXPAND(OPEN8::LSRB7Rd);
     EXPAND(OPEN8::ASRB7Rd);
     EXPAND(OPEN8::SEXT);
     EXPAND(OPEN8::ZEXT);

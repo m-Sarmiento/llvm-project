@@ -100,7 +100,7 @@ void OPEN8FrameLowering::emitPrologue(MachineFunction &MF,
 
   const MachineFrameInfo &MFI = MF.getFrameInfo();
   //TODO: rev frame size aligment
-  unsigned FrameSize = MFI.getStackSize() - AFI->getCalleeSavedFrameSize()+1;
+  unsigned FrameSize = MFI.getStackSize() - AFI->getCalleeSavedFrameSize();
 
   // Skip the callee-saved push instructions.
   while (
@@ -120,7 +120,7 @@ void OPEN8FrameLowering::emitPrologue(MachineFunction &MF,
     I->addLiveIn(OPEN8::R7R6);
   }
   //TODO: rev bad stack aligment
-  if (!(FrameSize-1)) {
+  if (!FrameSize) {
     return;
   }
 
@@ -176,13 +176,13 @@ void OPEN8FrameLowering::emitEpilogue(MachineFunction &MF,
   DebugLoc DL = MBBI->getDebugLoc();
   const MachineFrameInfo &MFI = MF.getFrameInfo();
   //TODO: rev frazmesize aligment
-  unsigned FrameSize = MFI.getStackSize() - AFI->getCalleeSavedFrameSize()+1;
+  unsigned FrameSize = MFI.getStackSize() - AFI->getCalleeSavedFrameSize();
   const OPEN8Subtarget &STI = MF.getSubtarget<OPEN8Subtarget>();
   const OPEN8InstrInfo &TII = *STI.getInstrInfo();
 
   // Early exit if there is no need to restore the frame pointer.
   //TODO: fix framesize aligment
-  if (!(FrameSize-1)) {
+  if (!FrameSize) {
     //restoreStatusRegister(MF, MBB);
     return;
   }
@@ -198,13 +198,6 @@ void OPEN8FrameLowering::emitEpilogue(MachineFunction &MF,
 
     --MBBI;
   }
-  // if 1, use upp fuction
-  if (FrameSize == 1){
-    BuildMI(MBB, MBBI, DL, TII.get(OPEN8::UPP))
-                         .addReg(OPEN8::R7R6, RegState::Kill);
-  }
-  else
-  {
     FrameSize = -FrameSize;
   // Restore the frame pointer by doing FP += <size>.
   MachineInstr *MI = BuildMI(MBB, MBBI, DL, TII.get(OPEN8::SUBIWRdK), OPEN8::R7R6)
@@ -212,7 +205,6 @@ void OPEN8FrameLowering::emitEpilogue(MachineFunction &MF,
                          .addImm(FrameSize);
   // The SREG implicit def is dead.
   MI->getOperand(3).setIsDead();
-  }
 
   // Write back R7R6 to SP and temporarily disable interrupts.
   BuildMI(MBB, MBBI, DL, TII.get(OPEN8::SPWRITE), OPEN8::SP)
@@ -380,7 +372,6 @@ MachineBasicBlock::iterator OPEN8FrameLowering::eliminateCallFramePseudoInstr(
   // instructions to read and write the stack pointer.
   if (Amount != 0) {
     assert(getStackAlign() == Align(1) && "Unsupported stack alignment");
-
     if (Opcode == TII.getCallFrameSetupOpcode()) {
       // Update the stack pointer.
       // In many cases this can be done far more efficiently by pushing the
@@ -407,16 +398,11 @@ MachineBasicBlock::iterator OPEN8FrameLowering::eliminateCallFramePseudoInstr(
       // with a few pop instructions instead of the 8-9 instructions now
       // required.
       BuildMI(MBB, MI, DL, TII.get(OPEN8::SPREAD), OPEN8::R5R4).addReg(OPEN8::SP);
-      if (Amount == 1){
-      BuildMI(MBB, MI, DL, TII.get(OPEN8::UPP))
-                         .addReg(OPEN8::R5R4, RegState::Kill);
-      } else {
       Amount = -Amount;
       MachineInstr *New = BuildMI(MBB, MI, DL, TII.get(OPEN8::SUBIWRdK), OPEN8::R5R4)
                               .addReg(OPEN8::R5R4, RegState::Kill)
                               .addImm(Amount);
       New->getOperand(3).setIsDead();
-      }
       BuildMI(MBB, MI, DL, TII.get(OPEN8::SPWRITE), OPEN8::SP)
           .addReg(OPEN8::R5R4, RegState::Kill);
     }

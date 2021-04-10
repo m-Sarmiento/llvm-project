@@ -17,7 +17,7 @@
 def RetCC_OPEN8_BUILTIN : CallingConv
 <[
   CCIfType<[i8], CCAssignToReg<[R4,R5]>>,
-  CCIfType<[i16], CCAssignToReg<[R5R4, R3R2]>>
+  CCIfType<[i16], CCAssignToReg<[R3R2, R5R4]>>
 ]>;
 
 //===----------------------------------------------------------------------===//
@@ -38,4 +38,4 @@ def ArgCC_OPEN8_Vararg : CallingConv
 //===----------------------------------------------------------------------===//
 
 def CSR_Normal : CalleeSavedRegs<(add R7, R6)>;//, (sequence "R%u", 5, 2))>;
-def CSR_Interrupts : CalleeSavedRegs<(add (sequence "R%u", 7, 1))>;
+def CSR_Interrupts : CalleeSavedRegs<(add (sequence "R%u", 7, 0))>;

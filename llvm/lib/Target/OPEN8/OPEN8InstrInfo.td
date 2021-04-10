@@ -462,13 +462,11 @@ Defs = [SREG] in
                         [(set i16:$rd, (sub i16:$src, i16:$rr)),
                          (implicit SREG)]>;
 
-/*  def SUBIRdK : FRdK<0b0101,
-                     (outs LD8:$rd),
-                     (ins LD8:$src, imm_ldi8:$k),
-                     "subi\t$rd, $k",
-                     [(set i8:$rd, (sub i8:$src, imm:$k)),
-                      (implicit SREG)]>;
-*/
+  def SUBIRdK : Pseudo<(outs GPR8:$rd),
+                      (ins GPR8:$src, imm_ldi8:$k),
+                      "subi\t$rd, $k",
+                      [(set i8:$rd, (sub i8:$src, imm:$k)),
+                        (implicit SREG)]>;
   // SUBIW Rd+1:Rd, K+1:K
   //
   // Expands to:
@@ -508,13 +506,12 @@ Defs = [SREG] in
                           [(set i16:$rd, (sube i16:$src, i16:$rr)),
                            (implicit SREG)]>;
 
-/*    def SBCIRdK : FRdK<0b0100,
-                       (outs LD8:$rd),
+    def SBCIRdK : Pseudo<(outs LD8:$rd),
                        (ins LD8:$src, imm_ldi8:$k),
                        "sbci\t$rd, $k",
                        [(set i8:$rd, (sube i8:$src, imm:$k)),
                         (implicit SREG)]>;
-*/
+
     // SBCIW Rd+1:Rd, K+1:K
     // sbci Rd,   K
     // sbci Rd+1, K+1
@@ -869,13 +866,26 @@ Uses = [SREG] in
                     [(OPEN8brcond bb:$offset, OPEN8_COND_PL)]>;
 
   //TODO: add to feature, open8 dont support signed branch native, need doc
-  def BRGE : OPEN8OpBitOff2<OP_BR17,
+  //TODO: add flag for enable, dissable
+  /*def BRGE : OPEN8OpBitOff2<OP_BR14,
                     (outs),
                     (ins relbrtarget_8:$target),
                     "brge\t$target",
                     [(OPEN8brcond bb:$target, OPEN8_COND_GE)]>;
 
-  def BRLT : OPEN8OpBitOff2<OP_BR07,
+  def BRLT : OPEN8OpBitOff2<OP_BR04,
+                    (outs),
+                    (ins relbrtarget_8:$target),
+                    "brlt\t$target",
+                    [(OPEN8brcond bb:$target, OPEN8_COND_LT)]>;*/
+  //BRGE -> BRNC
+  def BRGE : OPEN8OpBitOff2<OP_BR01,
+                    (outs),
+                    (ins relbrtarget_8:$target),
+                    "brge\t$target",
+                    [(OPEN8brcond bb:$target, OPEN8_COND_GE)]>;
+  ///BRLT -> BRC
+  def BRLT : OPEN8OpBitOff2<OP_BR11,
                     (outs),
                     (ins relbrtarget_8:$target),
                     "brlt\t$target",
@@ -1023,7 +1033,7 @@ isReMaterializable = 1 in
                           [(set i16:$dst, (load addr:$memri))]>,
                    Requires<[HasSRAM]>;
 
-  // An identical pseudo instruction to LDDWRdPtrQ, expect restricted to the Y
+  // An identical pseudo instruction to LDDWRdQ, expect restricted to the Y
   // register and without the @earlyclobber flag.
   //
   // Used to work around a bug caused by the register allocator not
@@ -1545,8 +1555,8 @@ def : Pat<(subc i16:$src, i16:$src2),
 def : Pat<(add i16:$src1, imm:$src2),
           (SUBIWRdK i16:$src1, (imm16_neg_XFORM imm:$src2))>;
 def : Pat<(addc i16:$src1, imm:$src2),
-          (SUBIWRdK i16:$src1, (imm16_neg_XFORM imm:$src2))>;
-
+          (SUBIWRdK i16:$src1, (imm16_neg_XFORM imm:$src2))>;*/
+/*
 def : Pat<(add i8:$src1, imm:$src2),
           (SUBIRdK i8:$src1, (imm8_neg_XFORM imm:$src2))>;
 def : Pat<(addc i8:$src1, imm:$src2),
