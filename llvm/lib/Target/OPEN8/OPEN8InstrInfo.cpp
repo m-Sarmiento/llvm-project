@@ -72,7 +72,7 @@ unsigned OPEN8InstrInfo::isLoadFromStackSlot(const MachineInstr &MI,
                                            int &FrameIndex) const {
   switch (MI.getOpcode()) {
   case OPEN8::LDDRdQ:
-  case OPEN8::LDDWRdYQ: { //:FIXME: remove this once PR13375 gets fixed
+  case OPEN8::LDDWRdQ: { //:FIXME: remove this once PR13375 gets fixed
     if (MI.getOperand(1).isFI() && MI.getOperand(2).isImm() &&
         MI.getOperand(2).getImm() == 0) {
       FrameIndex = MI.getOperand(1).getIndex();
@@ -169,7 +169,7 @@ void OPEN8InstrInfo::loadRegFromStackSlot(MachineBasicBlock &MBB,
   } else if (TRI->isTypeLegalForClass(*RC, MVT::i16)) {
     // Opcode = OPEN8::LDDWRdQ;
     //:FIXME: remove this once PR13375 gets fixed
-    Opcode = OPEN8::LDDWRdYQ;
+    Opcode = OPEN8::LDDWRdQ;
   } else {
     llvm_unreachable("Cannot load this register from a stack slot!");
   }

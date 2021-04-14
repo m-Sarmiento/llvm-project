@@ -2396,7 +2396,7 @@ bool OPEN8ExpandPseudo::expandMI(Block &MBB, BlockIt MBBI) {
     EXPAND(OPEN8::STRr);
     //EXPAND(OPEN8::RORRd);
     EXPAND(OPEN8::SWAPRd);
-  case OPEN8::LDDWRdYQ: //:FIXME: remove this once PR13375 gets fixed
+  //case OPEN8::LDDWRdYQ: //:FIXME: remove this once PR13375 gets fixed
     EXPAND(OPEN8::LDDWRdQ);
     EXPAND(OPEN8::STAWKRr);
     EXPAND(OPEN8::STWRr);

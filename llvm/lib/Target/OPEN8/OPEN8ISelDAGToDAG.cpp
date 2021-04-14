@@ -299,6 +299,9 @@ template <> bool OPEN8DAGToDAGISel::select<ISD::STORE>(SDNode *N) {
   }
 
   int CST = (int)cast<ConstantSDNode>(BasePtr.getOperand(1))->getZExtValue();
+  if (CST == 256){
+    CST =0;
+  }
   SDValue Chain = ST->getChain();
   EVT VT = ST->getValue().getValueType();
   SDLoc DL(N);
@@ -323,7 +326,7 @@ template <> bool OPEN8DAGToDAGISel::select<ISD::LOAD>(SDNode *N) {
     // Check if the opcode can be converted into an indexed load.
     return selectIndexedLoad(N);
   }
-
+  llvm_unreachable("Unsupported memory load");
   // This is a flash memory load, move the pointer into R5R4 and emit
   // the lpm instruction.
   /*MVT VT = LD->getMemoryVT().getSimpleVT();

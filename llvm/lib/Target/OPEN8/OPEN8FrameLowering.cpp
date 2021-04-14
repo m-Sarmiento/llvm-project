@@ -65,14 +65,6 @@ void OPEN8FrameLowering::emitPrologue(MachineFunction &MF,
         .setMIFlag(MachineInstr::FrameSetup);
   }
 
-  // Save the frame pointer if we have one.
-  //TODO: why this?
-  /*if (HasFP) {
-    BuildMI(MBB, MBBI, DL, TII.get(OPEN8::PUSHWRr))
-        .addReg(OPEN8::R7R6, RegState::Kill)
-        .setMIFlag(MachineInstr::FrameSetup);
-  }*/
-
   // Emit special prologue code to save R1, R0 and SREG in interrupt/signal
   // handlers before saving any other registers.
   if (AFI->isInterruptOrSignalHandler()) {
@@ -175,13 +167,11 @@ void OPEN8FrameLowering::emitEpilogue(MachineFunction &MF,
 
   DebugLoc DL = MBBI->getDebugLoc();
   const MachineFrameInfo &MFI = MF.getFrameInfo();
-  //TODO: rev frazmesize aligment
   unsigned FrameSize = MFI.getStackSize() - AFI->getCalleeSavedFrameSize();
   const OPEN8Subtarget &STI = MF.getSubtarget<OPEN8Subtarget>();
   const OPEN8InstrInfo &TII = *STI.getInstrInfo();
 
   // Early exit if there is no need to restore the frame pointer.
-  //TODO: fix framesize aligment
   if (!FrameSize) {
     //restoreStatusRegister(MF, MBB);
     return;
@@ -372,6 +362,7 @@ MachineBasicBlock::iterator OPEN8FrameLowering::eliminateCallFramePseudoInstr(
   // instructions to read and write the stack pointer.
   if (Amount != 0) {
     assert(getStackAlign() == Align(1) && "Unsupported stack alignment");
+
     if (Opcode == TII.getCallFrameSetupOpcode()) {
       // Update the stack pointer.
       // In many cases this can be done far more efficiently by pushing the
@@ -403,6 +394,7 @@ MachineBasicBlock::iterator OPEN8FrameLowering::eliminateCallFramePseudoInstr(
                               .addReg(OPEN8::R5R4, RegState::Kill)
                               .addImm(Amount);
       New->getOperand(3).setIsDead();
+
       BuildMI(MBB, MI, DL, TII.get(OPEN8::SPWRITE), OPEN8::SP)
           .addReg(OPEN8::R5R4, RegState::Kill);
     }

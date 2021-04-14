@@ -992,9 +992,9 @@ bool OPEN8TargetLowering::isOffsetFoldingLegal(
 /// Registers for calling conventions, ordered in reverse as required by ABI.
 /// Both arrays must be of the same length.
 static const MCPhysReg RegList8[] = {
-    OPEN8::R5,  OPEN8::R4, OPEN8::R3,  OPEN8::R2};
+    OPEN8::R5,  OPEN8::R4};
 static const MCPhysReg RegList16[] = {
-    OPEN8::R6R5, OPEN8::R5R4, OPEN8::R4R3, OPEN8::R3R2};
+    OPEN8::R3R2, OPEN8::R5R4};
 
 static_assert(array_lengthof(RegList8) == array_lengthof(RegList16),
         "8-bit and 16-bit register arrays must be of equal length");
@@ -1316,21 +1316,34 @@ SDValue OPEN8TargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
   // can be freely intermixed.
   if (HasStackArgs) {
     for (AE = AI, AI = ArgLocs.size(); AI != AE; --AI) {
-      unsigned Loc = AI - 1;
+      unsigned Loc = AI -1;
       CCValAssign &VA = ArgLocs[Loc];
       SDValue Arg = OutVals[Loc];
 
       assert(VA.isMemLoc());
 
       // SP points to one stack slot further so add one to adjust it.
-      /*SDValue PtrOff = DAG.getNode(
+      if(VA.getLocMemOffset() > 0 ){
+      SDValue PtrOff = DAG.getNode(
           ISD::ADD, DL, getPointerTy(DAG.getDataLayout()),
           DAG.getRegister(OPEN8::SP, getPointerTy(DAG.getDataLayout())),
-          DAG.getIntPtrConstant(VA.getLocMemOffset() + 1, DL));
+          DAG.getIntPtrConstant(VA.getLocMemOffset(), DL));
+          
+      //SDValue PtrOff = DAG.getIntPtrConstant(VA.getLocMemOffset(), DL);
+      //SDValue PtrOff = DAG.getRegister(OPEN8::SP, getPointerTy(DAG.getDataLayout()));
 
       Chain =
           DAG.getStore(Chain, DL, Arg, PtrOff,
-                       MachinePointerInfo::getStack(MF, VA.getLocMemOffset()));*/
+                       MachinePointerInfo::getStack(MF, VA.getLocMemOffset()));
+      }else{
+        SDValue PtrOff = DAG.getNode(
+          ISD::ADD, DL, getPointerTy(DAG.getDataLayout()),
+          DAG.getRegister(OPEN8::SP, getPointerTy(DAG.getDataLayout())),
+          DAG.getIntPtrConstant(VA.getLocMemOffset()+256, DL));
+        Chain =
+          DAG.getStore(Chain, DL, Arg, PtrOff,
+                       MachinePointerInfo::getStack(MF, VA.getLocMemOffset()));
+      }
     }
   }
 

@@ -151,13 +151,13 @@ bool OPEN8AsmPrinter::PrintAsmMemoryOperand(const MachineInstr *MI,
   // the register if it's given.
   // TableGen doesn't expose a way of getting retrieving names
   // for registers.
-  if (MI->getOperand(OpNum).getReg() == OPEN8::R5R4) {
+  /*if (MI->getOperand(OpNum).getReg() == OPEN8::R5R4) {
     O << "Z";
   } else {
     assert(MI->getOperand(OpNum).getReg() == OPEN8::R7R6 &&
            "Wrong register class for memory operand.");
     O << "Y";
-  }
+  }*/
 
   // If NumOpRegs == 2, then we assume it is product of a FrameIndex expansion
   // and the second operand is an Imm.
@@ -180,6 +180,16 @@ void OPEN8AsmPrinter::emitInstruction(const MachineInstr *MI) {
 }
 
 const MCExpr *OPEN8AsmPrinter::lowerConstant(const Constant *CV) {
+  MCContext &Ctx = OutContext;
+
+  if (const GlobalValue *GV = dyn_cast<GlobalValue>(CV)) {
+    bool IsProgMem = GV->getAddressSpace() == OPEN8::ProgramMemory;
+    if (IsProgMem) {
+      const MCExpr *Expr = MCSymbolRefExpr::create(getSymbol(GV), Ctx);
+      return OPEN8MCExpr::create(OPEN8MCExpr::VK_OPEN8_LO8, Expr, false, Ctx);
+    }
+  }
+
   return AsmPrinter::lowerConstant(CV);
 }
 
