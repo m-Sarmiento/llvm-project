@@ -1328,14 +1328,11 @@ SDValue OPEN8TargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
           ISD::ADD, DL, getPointerTy(DAG.getDataLayout()),
           DAG.getRegister(OPEN8::SP, getPointerTy(DAG.getDataLayout())),
           DAG.getIntPtrConstant(VA.getLocMemOffset(), DL));
-          
-      //SDValue PtrOff = DAG.getIntPtrConstant(VA.getLocMemOffset(), DL);
-      //SDValue PtrOff = DAG.getRegister(OPEN8::SP, getPointerTy(DAG.getDataLayout()));
 
       Chain =
           DAG.getStore(Chain, DL, Arg, PtrOff,
                        MachinePointerInfo::getStack(MF, VA.getLocMemOffset()));
-      }else{
+      }else if (VA.getLocMemOffset() < 256) {
         SDValue PtrOff = DAG.getNode(
           ISD::ADD, DL, getPointerTy(DAG.getDataLayout()),
           DAG.getRegister(OPEN8::SP, getPointerTy(DAG.getDataLayout())),
@@ -1343,6 +1340,12 @@ SDValue OPEN8TargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
         Chain =
           DAG.getStore(Chain, DL, Arg, PtrOff,
                        MachinePointerInfo::getStack(MF, VA.getLocMemOffset()));
+      }else {
+          llvm_unreachable("Offset bigger than 255 unsopported");
+          //TODO:
+          //Problem create ISD::ADD node when getIntPtrConstant is equial to zero
+          //Temporall resolve using 256 offset and descoded afert on ISD::STORE as 0
+          //Need to be fixed
       }
     }
   }
