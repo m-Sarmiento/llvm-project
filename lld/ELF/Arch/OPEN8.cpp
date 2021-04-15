@@ -100,7 +100,7 @@ void OPEN8::relocate(uint8_t *loc, const Relocation &rel, uint64_t val) const {
   
   case R_OPEN8_PCREL: {
     checkInt(loc, val, 8, rel);
-    uint16_t val8 = (val - 2 );    
+    uint16_t val8 = (val);    
     val8 &= 0xFF;
     write16le(loc+1, read16le(loc+1)| val8);
     break;

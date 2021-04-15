@@ -338,7 +338,7 @@ SDValue OPEN8TargetLowering::LowerShifts(SDValue Op, SelectionDAG &DAG) const {
 
   // Optimize int8/int16 shifts.
   if (VT.getSizeInBits() == 8) {
-    if (Op.getOpcode() == ISD::SHL && 4 <= ShiftAmount && ShiftAmount < 7) {
+    /*if (Op.getOpcode() == ISD::SHL && 4 <= ShiftAmount && ShiftAmount < 7) {
       // Optimize LSL when 4 <= ShiftAmount <= 6.
       Victim = DAG.getNode(OPEN8ISD::SWAP, dl, VT, Victim);
       Victim =
@@ -351,7 +351,7 @@ SDValue OPEN8TargetLowering::LowerShifts(SDValue Op, SelectionDAG &DAG) const {
       Victim =
           DAG.getNode(ISD::AND, dl, VT, Victim, DAG.getConstant(0x0f, dl, VT));
       ShiftAmount -= 4;
-    } else if (Op.getOpcode() == ISD::SHL && ShiftAmount == 7) {
+    } else*/ if (Op.getOpcode() == ISD::SHL && ShiftAmount == 7) {
       // Optimize LSL when ShiftAmount == 7.
       Victim = DAG.getNode(OPEN8ISD::LSL7, dl, VT, Victim);
       ShiftAmount = 0;
@@ -365,7 +365,7 @@ SDValue OPEN8TargetLowering::LowerShifts(SDValue Op, SelectionDAG &DAG) const {
       ShiftAmount = 0;
     }
   } else if (VT.getSizeInBits() == 16) {
-    if (4 <= ShiftAmount && ShiftAmount < 8)
+    /*if (4 <= ShiftAmount && ShiftAmount < 8)
       switch (Op.getOpcode()) {
       case ISD::SHL:
         Victim = DAG.getNode(OPEN8ISD::LSL4, dl, VT, Victim);
@@ -378,7 +378,7 @@ SDValue OPEN8TargetLowering::LowerShifts(SDValue Op, SelectionDAG &DAG) const {
       default:
         break;
       }
-    else if (8 <= ShiftAmount && ShiftAmount < 12)
+    else*/ if (8 <= ShiftAmount && ShiftAmount < 12)
       switch (Op.getOpcode()) {
       case ISD::SHL:
         Victim = DAG.getNode(OPEN8ISD::LSL8, dl, VT, Victim);
@@ -395,7 +395,7 @@ SDValue OPEN8TargetLowering::LowerShifts(SDValue Op, SelectionDAG &DAG) const {
       default:
         break;
       }
-    else if (12 <= ShiftAmount)
+    /*else if (12 <= ShiftAmount)
       switch (Op.getOpcode()) {
       case ISD::SHL:
         Victim = DAG.getNode(OPEN8ISD::LSL12, dl, VT, Victim);
@@ -407,7 +407,7 @@ SDValue OPEN8TargetLowering::LowerShifts(SDValue Op, SelectionDAG &DAG) const {
         break;
       default:
         break;
-      }
+      }*/
   }
 
   while (ShiftAmount--) {
