@@ -511,7 +511,7 @@ bool OPEN8ExpandPseudo::expand<OPEN8::MULSRdRr>(Block &MBB, BlockIt MBBI) {
   return true;
 }
 
-template <>
+/*template <>
 bool OPEN8ExpandPseudo::expand<OPEN8::COMWRd>(Block &MBB, BlockIt MBBI) {
   MachineInstr &MI = *MBBI;
   Register DstLoReg, DstHiReg;
@@ -539,9 +539,9 @@ bool OPEN8ExpandPseudo::expand<OPEN8::COMWRd>(Block &MBB, BlockIt MBBI) {
 
   MI.eraseFromParent();
   return true;
-}
+}*/
 
-template <>
+/*template <>
 bool OPEN8ExpandPseudo::expand<OPEN8::NEGWRd>(Block &MBB, BlockIt MBBI) {
   MachineInstr &MI = *MBBI;
   Register DstLoReg, DstHiReg;
@@ -578,7 +578,7 @@ bool OPEN8ExpandPseudo::expand<OPEN8::NEGWRd>(Block &MBB, BlockIt MBBI) {
 
   MI.eraseFromParent();
   return true;
-}
+}*/
 
 template <>
 bool OPEN8ExpandPseudo::expand<OPEN8::CPWRdRr>(Block &MBB, BlockIt MBBI) {
@@ -1331,7 +1331,7 @@ bool OPEN8ExpandPseudo::expand<OPEN8::LSLW4Rd>(Block &MBB, BlockIt MBBI) {
                             .addReg(OPEN8::R1)
                             .addImm(0xf0);
 
-  auto MI0 =
+  /*auto MI0 =*/
       buildMI(MBB, MBBI, OPEN8::ANDRdRr)
           .addReg(DstHiReg, RegState::Define | getDeadRegState(DstIsDead))
           .addReg(DstHiReg, getKillRegState(DstIsKill));
@@ -1339,7 +1339,7 @@ bool OPEN8ExpandPseudo::expand<OPEN8::LSLW4Rd>(Block &MBB, BlockIt MBBI) {
   //MI0->getOperand(3).setIsDead();
 
   // eor Rh, Rl
-  auto MI1 =
+  /*auto MI1 =*/
       buildMI(MBB, MBBI, OPEN8::EORRdRr)
           .addReg(DstHiReg, RegState::Define | getDeadRegState(DstIsDead))
           .addReg(DstHiReg, getKillRegState(DstIsKill))
@@ -1974,7 +1974,7 @@ bool OPEN8ExpandPseudo::expand<OPEN8::SPWRITE>(Block &MBB, BlockIt MBBI) {
   return true;
 }
 
-template <>
+/*template <>
 bool OPEN8ExpandPseudo::expand<OPEN8::COMRd>(Block &MBB, BlockIt MBBI) {
   MachineInstr &MI = *MBBI;
   Register DstReg = MI.getOperand(0).getReg();
@@ -1987,15 +1987,17 @@ bool OPEN8ExpandPseudo::expand<OPEN8::COMRd>(Block &MBB, BlockIt MBBI) {
     buildMI(MBB, MBBI, OPEN8::T0X).addReg(DstReg, RegState::Define | getDeadRegState(DstIsDead));
   } else {
     //TODO: value R1 will lost?
+    buildMI(MBB, MBBI, OPEN8::PUSHRr).addReg(OPEN8::R1);
     buildMI(MBB, MBBI, OPEN8::T0X).addReg(OPEN8::R1);
     buildMI(MBB, MBBI, OPEN8::LDIRdk).addReg(OPEN8::R0).addImm(0xFF);
     buildMI(MBB, MBBI, OPEN8::SBC).addReg(OPEN8::R1,getKillRegState(DstIsKill));
+    buildMI(MBB, MBBI, OPEN8::POPRd).addReg(OPEN8::R1);
   }
   MI.eraseFromParent();
   return true;
-}
+}*/
 
-template <>
+/*template <>
 bool OPEN8ExpandPseudo::expand<OPEN8::NEGRd>(Block &MBB, BlockIt MBBI) {
   MachineInstr &MI = *MBBI;
   Register DstReg = MI.getOperand(0).getReg();
@@ -2008,13 +2010,15 @@ bool OPEN8ExpandPseudo::expand<OPEN8::NEGRd>(Block &MBB, BlockIt MBBI) {
     buildMI(MBB, MBBI, OPEN8::T0X).addReg(DstReg, RegState::Define | getDeadRegState(DstIsDead));
   } else {
     //TODO: value R1 will lost?
+    buildMI(MBB, MBBI, OPEN8::PUSHRr).addReg(OPEN8::R1);
     buildMI(MBB, MBBI, OPEN8::T0X).addReg(OPEN8::R1);
-    buildMI(MBB, MBBI, OPEN8::LDIRdk).addReg(OPEN8::R0).addImm(0xFF);
+    buildMI(MBB, MBBI, OPEN8::LDIRdk).addReg(OPEN8::R0).addImm(0x00);
     buildMI(MBB, MBBI, OPEN8::SBC).addReg(OPEN8::R1,getKillRegState(DstIsKill));
+    buildMI(MBB, MBBI, OPEN8::POPRd).addReg(OPEN8::R1);
   }
   MI.eraseFromParent();
   return true;
-}
+}*/
 
 template <>
 bool OPEN8ExpandPseudo::expand<OPEN8::CPCRdRr>(Block &MBB, BlockIt MBBI) {
@@ -2263,7 +2267,7 @@ bool OPEN8ExpandPseudo::expand<OPEN8::ASRRd>(Block &MBB, BlockIt MBBI){
   buildMI(MBB, MBBI, OPEN8::CLP).addImm(0x1);
   buildMI(MBB, MBBI, OPEN8::TX0).addReg(DstReg);
   buildMI(MBB, MBBI, OPEN8::BTT).addImm(0x7);
-  buildMI(MBB, MBBI, OPEN8::BR0).addImm(0).addImm(3); //BRANCH ZERO
+  buildMI(MBB, MBBI, OPEN8::BR1).addImm(0).addImm(3); //BRANCH ZERO
   buildMI(MBB, MBBI, OPEN8::STP).addImm(0x1);
   buildMI(MBB, MBBI, OPEN8::RORRd)
     .addReg(DstReg, getKillRegState(DstIsKill));
@@ -2277,8 +2281,8 @@ bool OPEN8ExpandPseudo::expand<OPEN8::SWAPRd>(Block &MBB, BlockIt MBBI){
   MachineInstr &MI = *MBBI;
  
   Register DstReg = MI.getOperand(0).getReg();
-  bool DstIsKill = MI.getOperand(0).isKill();
-  bool DstIsDead = MI.getOperand(0).isDead();
+  //bool DstIsKill = MI.getOperand(0).isKill();
+  //bool DstIsDead = MI.getOperand(0).isDead();
 
   buildMI(MBB, MBBI, OPEN8::LDIRdk).addReg(OPEN8::R0).addImm(0x0F);
   buildMI(MBB, MBBI, OPEN8::AND).addReg(DstReg);
@@ -2385,8 +2389,8 @@ bool OPEN8ExpandPseudo::expandMI(Block &MBB, BlockIt MBBI) {
     EXPAND(OPEN8::ANDWRdRr);
     EXPAND(OPEN8::ORWRdRr);
     EXPAND(OPEN8::EORWRdRr);
-    EXPAND(OPEN8::COMWRd);
-    EXPAND(OPEN8::NEGWRd);
+    //EXPAND(OPEN8::COMWRd);
+    //EXPAND(OPEN8::NEGWRd);
     EXPAND(OPEN8::CPWRdRr);
     EXPAND(OPEN8::CPCWRdRr);
     EXPAND(OPEN8::LDIWRdk);
@@ -2404,8 +2408,8 @@ bool OPEN8ExpandPseudo::expandMI(Block &MBB, BlockIt MBBI) {
     EXPAND(OPEN8::EORRdRr);
     EXPAND(OPEN8::MULRdRr);
     EXPAND(OPEN8::MULSRdRr);
-    EXPAND(OPEN8::COMRd);
-    EXPAND(OPEN8::NEGRd);
+    //EXPAND(OPEN8::COMRd);
+    //EXPAND(OPEN8::NEGRd);
     EXPAND(OPEN8::CPCRdRr);
     EXPAND(OPEN8::CPRdRr);
     EXPAND(OPEN8::MOVRdRr);

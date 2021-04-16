@@ -160,3 +160,5 @@ class Device<string Name, Family Fam, ELFArch Arch,
 def : Device<"open80",      FamilyOPEN80,    ELFArchOPEN81>;
 def : Device<"open81",      FamilyOPEN81,    ELFArchOPEN81>;
 
+def : Device<"open8generic_0",          FamilyOPEN81, ELFArchOPEN81>;
+def : Device<"open8generic_8",           FamilyOPEN81, ELFArchOPEN81>;

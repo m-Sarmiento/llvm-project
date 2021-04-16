@@ -52,6 +52,29 @@ def warn_drv_avr_stdlib_not_linked: Warning<
   "standard library not linked and so no interrupt vector table or "
   "compiler runtime routines will be linked">,
   InGroup<AVRRtlibLinkingQuirks>;
+def warn_drv_open8_mcu_not_specified : Warning<
+  "no target microcontroller specified on command line, cannot "
+  "link standard libraries, please pass -mmcu=<mcu name>">,
+  InGroup<OPEN8RtlibLinkingQuirks>;
+def warn_drv_open8_gcc_not_found: Warning<
+  "no open8-gcc installation can be found on the system, "
+  "cannot link standard libraries">,
+  InGroup<OPEN8RtlibLinkingQuirks>;
+def warn_drv_open8_libc_not_found: Warning<
+  "no open8-libc installation can be found on the system, "
+  "cannot link standard libraries">,
+  InGroup<OPEN8RtlibLinkingQuirks>;
+def warn_drv_open8_family_linking_stdlibs_not_implemented: Warning<
+  "support for linking stdlibs for microcontroller '%0' is not implemented">,
+  InGroup<OPEN8RtlibLinkingQuirks>;
+def warn_drv_open8_linker_section_addresses_not_implemented: Warning<
+  "support for passing the data section address to the linker for "
+  "microcontroller '%0' is not implemented">,
+  InGroup<OPEN8RtlibLinkingQuirks>;
+def warn_drv_open8_stdlib_not_linked: Warning<
+  "standard library not linked and so no interrupt vector table or "
+  "compiler runtime routines will be linked">,
+  InGroup<OPEN8RtlibLinkingQuirks>;
 def err_drv_cuda_bad_gpu_arch : Error<"Unsupported CUDA gpu architecture: %0">;
 def err_drv_no_cuda_installation : Error<
   "cannot find CUDA installation. Provide its path via --cuda-path, or pass "

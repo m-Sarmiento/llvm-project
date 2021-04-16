@@ -1211,6 +1211,7 @@ def HIPOnly : DiagGroup<"hip-only">;
 // libc and the CRT to be skipped.
 def AVRRtlibLinkingQuirks : DiagGroup<"avr-rtlib-linking-quirks">;
 
+def OPEN8RtlibLinkingQuirks : DiagGroup<"open8-rtlib-linking-quirks">;
 // A warning group for things that will change semantics in the future.
 def FutureCompat : DiagGroup<"future-compat">;
 

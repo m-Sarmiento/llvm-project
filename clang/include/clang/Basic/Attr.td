@@ -364,6 +364,7 @@ def TargetARM : TargetArch<["arm", "thumb", "armeb", "thumbeb"]>;
 def TargetAArch64 : TargetArch<["aarch64"]>;
 def TargetAnyArm : TargetArch<!listconcat(TargetARM.Arches, TargetAArch64.Arches)>;
 def TargetAVR : TargetArch<["avr"]>;
+def TargetOPEN8 : TargetArch<["open8"]>;
 def TargetBPF : TargetArch<["bpfel", "bpfeb"]>;
 def TargetMips32 : TargetArch<["mips", "mipsel"]>;
 def TargetAnyMips : TargetArch<["mips", "mipsel", "mips64", "mips64el"]>;
@@ -799,6 +800,19 @@ def AVRSignal : InheritableAttr, TargetSpecificAttr<TargetAVR> {
   let Subjects = SubjectList<[Function]>;
   let Documentation = [AVRSignalDocs];
 }
+
+/*def OPEN8Interrupt : InheritableAttr, TargetSpecificAttr<TargetOPEN8> {
+  let Spellings = [GCC<"interrupt">];
+  let Subjects = SubjectList<[Function]>;
+  let ParseKind = "Interrupt";
+  let Documentation = [OPEN8InterruptDocs];
+}
+
+def OPEN8Signal : InheritableAttr, TargetSpecificAttr<TargetOPEN8> {
+  let Spellings = [GCC<"signal">];
+  let Subjects = SubjectList<[Function]>;
+  let Documentation = [OPEN8SignalDocs];
+}*/
 
 def AsmLabel : InheritableAttr {
   let Spellings = [Keyword<"asm">, Keyword<"__asm__">];

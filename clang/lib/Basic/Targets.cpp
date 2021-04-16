@@ -27,6 +27,7 @@
 #include "Targets/Mips.h"
 #include "Targets/NVPTX.h"
 #include "Targets/OSTargets.h"
+#include "Targets/OPEN8.h"
 #include "Targets/PNaCl.h"
 #include "Targets/PPC.h"
 #include "Targets/RISCV.h"
@@ -235,6 +236,8 @@ TargetInfo *AllocateTarget(const llvm::Triple &Triple,
 
   case llvm::Triple::avr:
     return new AVRTargetInfo(Triple, Opts);
+  case llvm::Triple::open8:
+    return new OPEN8TargetInfo(Triple, Opts);
   case llvm::Triple::bpfeb:
   case llvm::Triple::bpfel:
     return new BPFTargetInfo(Triple, Opts);

@@ -2098,6 +2098,9 @@ void Generic_GCC::GCCInstallationDetector::AddDefaultGCCPrefixes(
   static const char *const AVRLibDirs[] = {"/lib"};
   static const char *const AVRTriples[] = {"avr"};
 
+  static const char *const OPEN8LibDirs[] = {"/lib"};
+  static const char *const OPEN8Triples[] = {"open8"};
+
   static const char *const X86_64LibDirs[] = {"/lib64", "/lib"};
   static const char *const X86_64Triples[] = {
       "x86_64-linux-gnu",       "x86_64-unknown-linux-gnu",
@@ -2336,6 +2339,10 @@ void Generic_GCC::GCCInstallationDetector::AddDefaultGCCPrefixes(
     LibDirs.append(begin(AVRLibDirs), end(AVRLibDirs));
     TripleAliases.append(begin(AVRTriples), end(AVRTriples));
     break;
+  case llvm::Triple::open8:
+    LibDirs.append(begin(OPEN8LibDirs), end(OPEN8LibDirs));
+    TripleAliases.append(begin(OPEN8Triples), end(OPEN8Triples));
+    break;
   case llvm::Triple::x86_64:
     LibDirs.append(begin(X86_64LibDirs), end(X86_64LibDirs));
     TripleAliases.append(begin(X86_64Triples), end(X86_64Triples));
@@ -2490,6 +2497,8 @@ bool Generic_GCC::GCCInstallationDetector::ScanGCCForMultilibs(
     findMSP430Multilibs(D, TargetTriple, Path, Args, Detected);
   } else if (TargetArch == llvm::Triple::avr) {
     // AVR has no multilibs.
+  } else if (TargetArch == llvm::Triple::open8) {
+    // OPEN8 has no multilibs.
   } else if (!findBiarchMultilibs(D, TargetTriple, Path, Args,
                                   NeedsBiarchSuffix, Detected)) {
     return false;
@@ -2736,6 +2745,7 @@ bool Generic_GCC::IsIntegratedAssemblerDefault() const {
   case llvm::Triple::arm:
   case llvm::Triple::armeb:
   case llvm::Triple::avr:
+  case llvm::Triple::open8:
   case llvm::Triple::bpfel:
   case llvm::Triple::bpfeb:
   case llvm::Triple::thumb:
