@@ -2029,8 +2029,8 @@ bool OPEN8ExpandPseudo::expand<OPEN8::CPCRdRr>(Block &MBB, BlockIt MBBI) {
   bool DstIsKill = MI.getOperand(0).isKill();
   bool SrcIsKill = MI.getOperand(1).isKill();
   //save the old value of zero flag
-  buildMI(MBB, MBBI, OPEN8::CLP).addImm(5); //clear gp2 
-  buildMI(MBB, MBBI, OPEN8::BR0).addImm(0).addImm(3); //jump if zero is clear
+  buildMI(MBB, MBBI, OPEN8::CLP).addImm(3); //clear gp2 
+  buildMI(MBB, MBBI, OPEN8::BR0).addImm(0).addImm(1); //jump if zero is clear
   buildMI(MBB, MBBI, OPEN8::STP).addImm(5); //else set gp2
   if(DstReg != OPEN8::R0  & SrcReg != OPEN8::R0){
     buildMI(MBB, MBBI, OPEN8::TX0).addReg(DstReg, getKillRegState(DstIsKill));
@@ -2053,8 +2053,8 @@ bool OPEN8ExpandPseudo::expand<OPEN8::CPCRdRr>(Block &MBB, BlockIt MBBI) {
     buildMI(MBB, MBBI, OPEN8::SBC).addReg(DstReg,getKillRegState(DstIsKill));
     buildMI(MBB, MBBI, OPEN8::POPRd).addReg(DstReg);
   }
-  buildMI(MBB, MBBI, OPEN8::BR0).addImm(0).addImm(5); //jump exit if zero is clear
-  buildMI(MBB, MBBI, OPEN8::BR1).addImm(5).addImm(3); //jump exit if gp2 is set
+  buildMI(MBB, MBBI, OPEN8::BR0).addImm(0).addImm(3); //jump exit if zero is clear
+  buildMI(MBB, MBBI, OPEN8::BR1).addImm(5).addImm(1); //jump exit if gp2 is set
   buildMI(MBB, MBBI, OPEN8::CLP).addImm(0); //else clear zero
   //buildMI(MBB, MBBI, OPEN8::CLP).addImm(5); //else clear gp2 //TODO: neeed to restore the gp2 value?
   MI.eraseFromParent();
@@ -2275,7 +2275,7 @@ bool OPEN8ExpandPseudo::expand<OPEN8::ASRRd>(Block &MBB, BlockIt MBBI){
   buildMI(MBB, MBBI, OPEN8::CLP).addImm(0x1);
   buildMI(MBB, MBBI, OPEN8::TX0).addReg(DstReg);
   buildMI(MBB, MBBI, OPEN8::BTT).addImm(0x7);
-  buildMI(MBB, MBBI, OPEN8::BR1).addImm(0).addImm(3); //BRANCH ZERO
+  buildMI(MBB, MBBI, OPEN8::BR1).addImm(0).addImm(1); //BRANCH ZERO
   buildMI(MBB, MBBI, OPEN8::STP).addImm(0x1);
   buildMI(MBB, MBBI, OPEN8::RORRd)
     .addReg(DstReg, getKillRegState(DstIsKill));
@@ -2313,7 +2313,7 @@ template <>
 bool OPEN8ExpandPseudo::expand<OPEN8::JMPZ>(Block &MBB, BlockIt MBBI) {
   MachineInstr &MI = *MBBI;
 
-  buildMI(MBB, MBBI, OPEN8::BR0).addImm(0).addImm(5); //BRANCH
+  buildMI(MBB, MBBI, OPEN8::BR0).addImm(0).addImm(3); //BRANCH
   //buildMI(MBB, MBBI, OPEN8::BRNZ).addImm(5); //BRANCH
   buildMI(MBB, MBBI, OPEN8::JMPk).addMBB(MI.getOperand(0).getMBB()); //JMP
 
@@ -2325,7 +2325,7 @@ template <>
 bool OPEN8ExpandPseudo::expand<OPEN8::JMPNZ>(Block &MBB, BlockIt MBBI) {
   MachineInstr &MI = *MBBI;
 
-  buildMI(MBB, MBBI, OPEN8::BR1).addImm(0).addImm(5); //BRANCH
+  buildMI(MBB, MBBI, OPEN8::BR1).addImm(0).addImm(3); //BRANCH
   //buildMI(MBB, MBBI, OPEN8::BRZ).addImm(5); //BRANCH
   buildMI(MBB, MBBI, OPEN8::JMPk).addMBB(MI.getOperand(0).getMBB()); //JMP
 
@@ -2337,7 +2337,7 @@ template <>
 bool OPEN8ExpandPseudo::expand<OPEN8::JMPLZ>(Block &MBB, BlockIt MBBI) {
   MachineInstr &MI = *MBBI;
 
-  buildMI(MBB, MBBI, OPEN8::BR0).addImm(2).addImm(5); //BRANCH
+  buildMI(MBB, MBBI, OPEN8::BR0).addImm(2).addImm(5-2); //BRANCH
   //buildMI(MBB, MBBI, OPEN8::BRC).addImm(5); //BRANCH
   buildMI(MBB, MBBI, OPEN8::JMPk).addMBB(MI.getOperand(0).getMBB()); //JMP
 
@@ -2349,7 +2349,7 @@ template <>
 bool OPEN8ExpandPseudo::expand<OPEN8::JMPGEZ>(Block &MBB, BlockIt MBBI) {
   MachineInstr &MI = *MBBI;
 
-  buildMI(MBB, MBBI, OPEN8::BR1).addImm(2).addImm(5); //BRANCH
+  buildMI(MBB, MBBI, OPEN8::BR1).addImm(2).addImm(3); //BRANCH
   //buildMI(MBB, MBBI, OPEN8::BRLZ).addImm(5); //BRANCH
   buildMI(MBB, MBBI, OPEN8::JMPk).addMBB(MI.getOperand(0).getMBB()); //JMP
 
@@ -2361,7 +2361,7 @@ template <>
 bool OPEN8ExpandPseudo::expand<OPEN8::JMPC>(Block &MBB, BlockIt MBBI) {
   MachineInstr &MI = *MBBI;
 
-  buildMI(MBB, MBBI, OPEN8::BR0).addImm(0).addImm(5); //BRANCH
+  buildMI(MBB, MBBI, OPEN8::BR0).addImm(0).addImm(3); //BRANCH
   //buildMI(MBB, MBBI, OPEN8::BRNZ).addImm(5); //BRANCH
   buildMI(MBB, MBBI, OPEN8::JMPk).addMBB(MI.getOperand(0).getMBB()); //JMP
 
@@ -2372,7 +2372,7 @@ bool OPEN8ExpandPseudo::expand<OPEN8::JMPC>(Block &MBB, BlockIt MBBI) {
 template <>
 bool OPEN8ExpandPseudo::expand<OPEN8::JMPNC>(Block &MBB, BlockIt MBBI) {
   MachineInstr &MI = *MBBI;
-  buildMI(MBB, MBBI, OPEN8::BR1).addImm(1).addImm(5); //BRANCH
+  buildMI(MBB, MBBI, OPEN8::BR1).addImm(1).addImm(3); //BRANCH
   //buildMI(MBB, MBBI, OPEN8::BRC).addImm(5); //BRANCH
   buildMI(MBB, MBBI, OPEN8::JMPk).addMBB(MI.getOperand(0).getMBB()); //JMP
 
