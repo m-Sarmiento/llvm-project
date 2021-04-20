@@ -17,7 +17,7 @@
 def RetCC_OPEN8_BUILTIN : CallingConv
 <[
   CCIfType<[i8], CCAssignToReg<[R4,R5]>>,
-  CCIfType<[i16], CCAssignToReg<[R3R2, R5R4]>>
+  CCIfType<[i16], CCAssignToReg<[R5R4, R3R2]>>
 ]>;
 
 //===----------------------------------------------------------------------===//

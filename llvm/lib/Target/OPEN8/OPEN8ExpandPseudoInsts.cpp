@@ -2028,6 +2028,10 @@ bool OPEN8ExpandPseudo::expand<OPEN8::CPCRdRr>(Block &MBB, BlockIt MBBI) {
   //bool DstIsDead = MI.getOperand(0).isDead();
   bool DstIsKill = MI.getOperand(0).isKill();
   bool SrcIsKill = MI.getOperand(1).isKill();
+  //save the old value of zero flag
+  buildMI(MBB, MBBI, OPEN8::CLP).addImm(5); //clear gp2 
+  buildMI(MBB, MBBI, OPEN8::BR0).addImm(0).addImm(3); //jump if zero is clear
+  buildMI(MBB, MBBI, OPEN8::STP).addImm(5); //else set gp2
   if(DstReg != OPEN8::R0  & SrcReg != OPEN8::R0){
     buildMI(MBB, MBBI, OPEN8::TX0).addReg(DstReg, getKillRegState(DstIsKill));
     buildMI(MBB, MBBI, OPEN8::SBC).addReg(SrcReg,getKillRegState(SrcIsKill));
@@ -2049,6 +2053,10 @@ bool OPEN8ExpandPseudo::expand<OPEN8::CPCRdRr>(Block &MBB, BlockIt MBBI) {
     buildMI(MBB, MBBI, OPEN8::SBC).addReg(DstReg,getKillRegState(DstIsKill));
     buildMI(MBB, MBBI, OPEN8::POPRd).addReg(DstReg);
   }
+  buildMI(MBB, MBBI, OPEN8::BR0).addImm(0).addImm(5); //jump exit if zero is clear
+  buildMI(MBB, MBBI, OPEN8::BR1).addImm(5).addImm(3); //jump exit if gp2 is set
+  buildMI(MBB, MBBI, OPEN8::CLP).addImm(0); //else clear zero
+  //buildMI(MBB, MBBI, OPEN8::CLP).addImm(5); //else clear gp2 //TODO: neeed to restore the gp2 value?
   MI.eraseFromParent();
   return true;
 }

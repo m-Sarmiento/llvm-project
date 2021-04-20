@@ -43,7 +43,7 @@ namespace OPEN8 {
 class LLVM_LIBRARY_VISIBILITY Linker : public Tool {
 public:
   Linker(const llvm::Triple &Triple, const ToolChain &TC, bool LinkStdlib)
-      : Tool("OPEN8::Linker", "open8-ld", TC), Triple(Triple),
+      : Tool("OPEN8::Linker", "ld.lld", TC), Triple(Triple),
         LinkStdlib(LinkStdlib) {}
 
   bool hasIntegratedCPP() const override { return false; }
