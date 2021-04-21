@@ -1727,7 +1727,7 @@ bool OPEN8ExpandPseudo::expand<OPEN8::LSRB7Rd>(Block &MBB, BlockIt MBBI) {
   // rol r24
   // clr r24
   // rol r24
-
+  //TODO: optimiza using rol
   buildMI(MBB, MBBI, OPEN8::ADCRdRr)
       .addReg(DstReg, RegState::Define | getDeadRegState(DstIsDead))
       .addReg(DstReg, getKillRegState(DstIsKill))
@@ -2454,7 +2454,7 @@ bool OPEN8ExpandPseudo::expandMI(Block &MBB, BlockIt MBBI) {
     EXPAND(OPEN8::ASRWRd);
     EXPAND(OPEN8::ASRW8Rd);
     //EXPAND(OPEN8::LSLB7Rd);
-    //EXPAND(OPEN8::LSRB7Rd);
+    EXPAND(OPEN8::LSRB7Rd);
     EXPAND(OPEN8::ASRB7Rd);
     EXPAND(OPEN8::SEXT);
     EXPAND(OPEN8::ZEXT);
