@@ -115,10 +115,11 @@ void OPEN8FrameLowering::emitPrologue(MachineFunction &MF,
   if (!FrameSize) {
     return;
   }
-
+  //FrameSize++;
+  FrameSize = -FrameSize;
   // Reserve the necessary frame memory by doing FP -= <size>.
   // TODO: rev this
-  MachineInstr *MI = BuildMI(MBB, MBBI, DL, TII.get(OPEN8::SUBIWRdK), OPEN8::R7R6)
+  MachineInstr *MI = BuildMI(MBB, MBBI, DL, TII.get(OPEN8::ADIWRdK), OPEN8::R7R6)
                          .addReg(OPEN8::R7R6, RegState::Kill)
                          .addImm(FrameSize)
                          .setMIFlag(MachineInstr::FrameSetup);
@@ -188,11 +189,10 @@ void OPEN8FrameLowering::emitEpilogue(MachineFunction &MF,
 
     --MBBI;
   }
-    FrameSize = -FrameSize;
   // Restore the frame pointer by doing FP += <size>.
-  MachineInstr *MI = BuildMI(MBB, MBBI, DL, TII.get(OPEN8::SUBIWRdK), OPEN8::R7R6)
+  MachineInstr *MI = BuildMI(MBB, MBBI, DL, TII.get(OPEN8::ADIWRdK), OPEN8::R7R6)
                          .addReg(OPEN8::R7R6, RegState::Kill)
-                         .addImm(FrameSize);
+                         .addImm(FrameSize/*++*/);
   // The SREG implicit def is dead.
   MI->getOperand(3).setIsDead();
 
@@ -370,8 +370,9 @@ MachineBasicBlock::iterator OPEN8FrameLowering::eliminateCallFramePseudoInstr(
       // (in the right order, possibly skipping some empty space for undef
       // values, etc) is tricky and thus left to be optimized in the future.
       BuildMI(MBB, MI, DL, TII.get(OPEN8::SPREAD), OPEN8::R5R4).addReg(OPEN8::SP);
-
-      MachineInstr *New = BuildMI(MBB, MI, DL, TII.get(OPEN8::SUBIWRdK), OPEN8::R5R4)
+      //Amount++;
+      Amount = -Amount;
+      MachineInstr *New = BuildMI(MBB, MI, DL, TII.get(OPEN8::ADIWRdK), OPEN8::R5R4)
                               .addReg(OPEN8::R5R4, RegState::Kill)
                               .addImm(Amount);
       New->getOperand(3).setIsDead();
@@ -389,10 +390,9 @@ MachineBasicBlock::iterator OPEN8FrameLowering::eliminateCallFramePseudoInstr(
       // with a few pop instructions instead of the 8-9 instructions now
       // required.
       BuildMI(MBB, MI, DL, TII.get(OPEN8::SPREAD), OPEN8::R5R4).addReg(OPEN8::SP);
-      Amount = -Amount;
-      MachineInstr *New = BuildMI(MBB, MI, DL, TII.get(OPEN8::SUBIWRdK), OPEN8::R5R4)
+      MachineInstr *New = BuildMI(MBB, MI, DL, TII.get(OPEN8::ADIWRdK), OPEN8::R5R4)
                               .addReg(OPEN8::R5R4, RegState::Kill)
-                              .addImm(Amount);
+                              .addImm(Amount/*++*/);
       New->getOperand(3).setIsDead();
 
       BuildMI(MBB, MI, DL, TII.get(OPEN8::SPWRITE), OPEN8::SP)

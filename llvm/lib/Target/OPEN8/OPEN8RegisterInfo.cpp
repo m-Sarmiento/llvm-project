@@ -145,7 +145,7 @@ void OPEN8RegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
   int Offset = MFI.getObjectOffset(FrameIndex);
 
   // Add one to the offset because SP points to an empty slot.//
-  Offset += MFI.getStackSize() - TFI->getOffsetOfLocalArea();
+  Offset += MFI.getStackSize() - TFI->getOffsetOfLocalArea()+1;
   // Fold incoming offset.
   Offset += MI.getOperand(FIOperandNum + 1).getImm();
 

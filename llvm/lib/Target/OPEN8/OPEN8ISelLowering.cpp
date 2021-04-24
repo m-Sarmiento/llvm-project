@@ -1323,16 +1323,16 @@ SDValue OPEN8TargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
       assert(VA.isMemLoc());
 
       // SP points to one stack slot further so add one to adjust it.
-      if(VA.getLocMemOffset() > 0 ){
+      //if(VA.getLocMemOffset() > 0 ){
       SDValue PtrOff = DAG.getNode(
           ISD::ADD, DL, getPointerTy(DAG.getDataLayout()),
           DAG.getRegister(OPEN8::SP, getPointerTy(DAG.getDataLayout())),
-          DAG.getIntPtrConstant(VA.getLocMemOffset(), DL));
+          DAG.getIntPtrConstant(VA.getLocMemOffset()+1, DL));
 
       Chain =
           DAG.getStore(Chain, DL, Arg, PtrOff,
                        MachinePointerInfo::getStack(MF, VA.getLocMemOffset()));
-      }else if (VA.getLocMemOffset() < 256) {
+      /*}else if (VA.getLocMemOffset() < 256) {
         SDValue PtrOff = DAG.getNode(
           ISD::ADD, DL, getPointerTy(DAG.getDataLayout()),
           DAG.getRegister(OPEN8::SP, getPointerTy(DAG.getDataLayout())),
@@ -1346,7 +1346,7 @@ SDValue OPEN8TargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
           //Problem create ISD::ADD node when getIntPtrConstant is equial to zero
           //Temporall resolve using 256 offset and descoded afert on ISD::STORE as 0
           //Need to be fixed
-      }
+      }*/
     }
   }
 

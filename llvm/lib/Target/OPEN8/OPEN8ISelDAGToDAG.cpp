@@ -299,13 +299,13 @@ template <> bool OPEN8DAGToDAGISel::select<ISD::STORE>(SDNode *N) {
   }
 
   int CST = (int)cast<ConstantSDNode>(BasePtr.getOperand(1))->getZExtValue();
-  if (CST == 256){
+  /*if (CST == 256){
     CST =0;
     //TODO:
     //Problem create ISD::ADD node when getIntPtrConstant is equial to zero
     //Temporall resolve using 256 offset and descoded afert on ISD::STORE as 0
     //Need to be fixed
-  }
+  }*/
   SDValue Chain = ST->getChain();
   EVT VT = ST->getValue().getValueType();
   SDLoc DL(N);

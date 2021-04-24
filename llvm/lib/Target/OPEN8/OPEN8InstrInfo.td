@@ -388,6 +388,12 @@ Defs = [SREG] in
                       [(set i8:$rd, (add i8:$src, i8:$rr)),
                        (implicit SREG)]>;
 
+  def ADDIRdK : Pseudo<(outs GPR8:$rd),
+                      (ins GPR8:$src, imm_ldi8:$k),
+                      "addi\t$rd, $k",
+                      [(set i8:$rd, (add i8:$src, imm:$k)),
+                        (implicit SREG)]>;
+
   // ADDW Rd+1:Rd, Rr+1:Rr
   // Pseudo instruction to add four 8-bit registers as two 16-bit values.
   //
@@ -399,6 +405,12 @@ Defs = [SREG] in
                         "addw\t$rd, $rr",
                         [(set i16:$rd, (add i16:$src, i16:$rr)),
                          (implicit SREG)]>;
+  let Uses = [SREG] in
+  def ADCIRdK : Pseudo<(outs LD8:$rd),
+                       (ins LD8:$src, imm_ldi8:$k),
+                       "adci\t$rd, $k",
+                       [(set i8:$rd, (addc i8:$src, imm:$k)),
+                        (implicit SREG)]>;
 
   // ADC Rd, Rr
   // Adds two 8-bit registers with carry.
@@ -423,17 +435,15 @@ Defs = [SREG] in
                         [(set i16:$rd, (adde i16:$src, i16:$rr)),
                          (implicit SREG)]>;
 
-/*
+
   // AIDW Rd, k
   // Adds an immediate 6-bit value K to Rd, placing the result in Rd.
-  def ADIWRdK : FWRdK<0b0,
-                      (outs IWREGS:$rd),
-                      (ins IWREGS:$src, imm_arith6:$k),
+  def ADIWRdK : Pseudo<(outs DREGS:$rd),
+                      (ins DREGS:$src, imm_arith6:$k),
                       "adiw\t$rd, $k",
-                      [(set i16:$rd, (add i16:$src, uimm6:$k)),
-                       (implicit SREG)]>,
-                Requires<[HasADDSUBIW]>;
-*/
+                      [(set i16:$rd, (add i16:$src, imm:$k)),
+                       (implicit SREG)]>;
+
 }
 
 //===----------------------------------------------------------------------===//
@@ -867,13 +877,13 @@ Uses = [SREG] in
 
   //TODO: add to feature, open8 dont support signed branch native, need doc
   //TODO: add flag for enable, dissable
-  /*def BRGE : OPEN8OpBitOff2<OP_BR14,
+  /*def BRGE : OPEN8OpBitOff2<OP_BR17,
                     (outs),
                     (ins relbrtarget_8:$target),
                     "brge\t$target",
                     [(OPEN8brcond bb:$target, OPEN8_COND_GE)]>;
 
-  def BRLT : OPEN8OpBitOff2<OP_BR04,
+  def BRLT : OPEN8OpBitOff2<OP_BR07,
                     (outs),
                     (ins relbrtarget_8:$target),
                     "brlt\t$target",
@@ -1363,9 +1373,13 @@ def : InstAlias<"cln", (CLP 2)>;
 def : InstAlias<"sti", (STP 3)>;
 def : InstAlias<"cli", (CLP 3)>;
 
-// Set/clear aliases for the signed overflow (v) status flag (bit 4).
-def : InstAlias<"stv", (STP 4)>;
-def : InstAlias<"clv", (CLP 4)>;
+// Set/clear aliases for the stack  (stk) status flag (bit 4).
+def : InstAlias<"sstk", (STP 4)>;
+def : InstAlias<"cstk", (CLP 4)>;
+
+// Set/clear aliases for the signed overflow (v) status flag (bit 7).
+def : InstAlias<"stv", (STP 7)>;
+def : InstAlias<"clv", (CLP 7)>;
 
 //===----------------------------------------------------------------------===//
 // Special/Control instructions
@@ -1619,6 +1633,17 @@ def : Pat<(OPEN8tst i8:$rd),
 // LSL is an alias of 'ADD Rd, Rd'
 def : Pat<(OPEN8lsl i8:$rd),
           (ADDRdRr GPR8:$rd, GPR8:$rd)>;
+//
+let Defs = [SREG] in
+{
+  let Uses = [SREG] in
+  {
+    def FLIPSTC : Pseudo<(outs),
+                     (ins),
+                     "flipstc",
+                     []>;  
+  }
+}
 
 //OPEN8 INSTRUCTIONS
 let Constraints = "$src = $rn",
