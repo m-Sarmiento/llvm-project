@@ -93,26 +93,17 @@ bool OPEN8RelaxMem::relax<OPEN8::STDWQRr>(Block &MBB, BlockIt MBBI) {
   int64_t Imm = MI.getOperand(1).getImm();
 
   // We can definitely optimise this better.
-  if (Imm > 255) {
+  if (Imm > 127) {
     // Push the previous state of the pointer register.
     // This instruction must preserve the value.
     buildMI(MBB, MBBI, OPEN8::PUSHWRr)
       .addReg(Ptr.getReg());
 
     // Add the immediate to the pointer register.
-    buildMI(MBB, MBBI, OPEN8::SUBIWRdK)
+    buildMI(MBB, MBBI, OPEN8::ADIWRdK)
       .addReg(Ptr.getReg(), RegState::Define)
       .addReg(Ptr.getReg())
-      .addImm(-Imm);
-    // Add the immediate to the pointer register.
-/*    buildMI(MBB, MBBI, OPEN8::LDIWRdk)
-                            .addReg(OPEN8::R1R0)
-                            .addImm(-Imm);
-    buildMI(MBB, MBBI, OPEN8::SBCWRdRr)
-      .addReg(Ptr.getReg(), RegState::Define)
-      .addReg(Ptr.getReg())
-      .addReg(OPEN8::R1R0, RegState::Kill);
-*/
+      .addImm(Imm);
 
     // Store the value in the source register to the address
     // pointed to by the pointer register.

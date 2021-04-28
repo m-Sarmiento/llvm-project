@@ -180,12 +180,9 @@ void OPEN8RegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
                             .addReg(DstReg, RegState::Kill)
                             .addImm(Offset);
     New->getOperand(3).setIsDead();*/
-    BuildMI(MBB, II, dl, TII.get(OPEN8::LDIWRdk), OPEN8::R1R0)
-                            .addImm(Offset);
-
-    MachineInstr *New = BuildMI(MBB, II, dl, TII.get(OPEN8::ADDWRdRr), DstReg)
+    MachineInstr *New = BuildMI(MBB, II, dl, TII.get(OPEN8::ADIWRdK), DstReg)
                             .addReg(DstReg, RegState::Kill)
-                            .addReg(OPEN8::R1R0, RegState::Kill);
+                            .addImm(Offset);
     New->getOperand(3).setIsDead();
     return;
   }
@@ -194,17 +191,18 @@ void OPEN8RegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
   // to materialize a valid load/store with displacement.
   //:TODO: consider using only one adiw/sbiw chain for more than one frame index
   //// Always case For huge offsets where adiw/sbiw cannot be used use a pair of subi/sbci.
-  if (Offset > 254) {
+  if (Offset > 126) {
     assert(true && "psr posible lost");
     unsigned SubOpc = OPEN8::SUBIWRdK;
-    int AddOffset = -(Offset - 255 + 1);
+    unsigned AddOpc = OPEN8::ADIWRdK;
+    int AddOffset = (Offset - 127 + 1);
     // It is possible that the spiller places this frame instruction in between
     // a compare and branch, invalidating the contents of SREG set by the
     // compare instruction because of the add/sub pairs. Conservatively save and
     // restore SREG before and after each add/sub pair.
     // OPEN8 dont support save or restore PSR, maybe will lost it
     //BuildMI(MBB, II, dl, TII.get(OPEN8::INRdA), OPEN8::R0).addImm(0x3f);
-    MachineInstr *New = BuildMI(MBB, II, dl, TII.get(SubOpc), OPEN8::R7R6)
+    MachineInstr *New = BuildMI(MBB, II, dl, TII.get(AddOpc), OPEN8::R7R6)
                             .addReg(OPEN8::R7R6, RegState::Kill)
                             .addImm(AddOffset);
     New->getOperand(3).setIsDead();
@@ -216,12 +214,12 @@ void OPEN8RegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
     // cond branch it will be using a dead register.
     BuildMI(MBB, std::next(II), dl, TII.get(SubOpc), OPEN8::R7R6)
         .addReg(OPEN8::R7R6, RegState::Kill)
-        .addImm(Offset - 255 + 1);
-    Offset = 254;
+        .addImm(Offset - 127 + 1);
+    Offset = 126;
   }
 
   MI.getOperand(FIOperandNum).ChangeToRegister(OPEN8::R7R6, false);
-  assert(isUInt<8>(Offset) && "Offset is out of range");
+  assert(isUInt<7>(Offset) && "Offset is out of range");
   MI.getOperand(FIOperandNum + 1).ChangeToImmediate(Offset);
 }
 

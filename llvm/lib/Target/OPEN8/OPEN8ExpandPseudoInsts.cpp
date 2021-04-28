@@ -313,7 +313,7 @@ bool OPEN8ExpandPseudo::expand<OPEN8::SUBIRdK>(Block &MBB, BlockIt MBBI) {
   }
   buildMI(MBB, MBBI, Op1).addReg(SrcReg).addImm(imm);
   //buildMI(MBB, MBBI, Op2).addImm(1);
-  buildMI(MBB, MBBI, OPEN8::STP).addReg(SrcReg).addImm(0x1); //BUG: remove in the future
+  buildMI(MBB, MBBI, OPEN8::STP).addImm(0x1); //BUG: remove in the future
   buildMI(MBB, MBBI, Op3).addReg(SrcReg,getKillRegState(SrcIsKill));
 
   if(DstReg != OPEN8::R0 ){
@@ -2563,7 +2563,7 @@ bool OPEN8ExpandPseudo::expandMI(Block &MBB, BlockIt MBBI) {
     EXPAND(OPEN8::STRr);
     //EXPAND(OPEN8::RORRd);
     EXPAND(OPEN8::SWAPRd);
-  //case OPEN8::LDDWRdYQ: //:FIXME: remove this once PR13375 gets fixed
+  case OPEN8::LDDWRdYQ: //:FIXME: remove this once PR13375 gets fixed
     EXPAND(OPEN8::LDDWRdQ);
     EXPAND(OPEN8::STAWKRr);
     EXPAND(OPEN8::STWRr);
