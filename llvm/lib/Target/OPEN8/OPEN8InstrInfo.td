@@ -361,10 +361,10 @@ Uses = [SP] in
                                 "#ADJCALLSTACKDOWN",
                                 [(OPEN8callseq_start timm:$amt, timm:$amt2)]>;
 
-  // R5R4 is used to update SP, since it is a scratch reg and this instruction
-  // is placed after the function call then R5R4 should be always free.
-  //let Defs = [R5R4],
-  //Uses = [R5R4] in
+  // R3R2 is used to update SP, since it is a scratch reg and this instruction
+  // is placed after the function call then R3R2 should be always free.
+  //let Defs = [R3R2],
+  //Uses = [R3R2] in
   //:TODO: if we enable this, the pseudo is killed because it looks dead
   def ADJCALLSTACKUP : Pseudo<(outs),
                               (ins i16imm:$amt1, i16imm:$amt2),

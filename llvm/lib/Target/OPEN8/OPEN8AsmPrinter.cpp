@@ -151,7 +151,7 @@ bool OPEN8AsmPrinter::PrintAsmMemoryOperand(const MachineInstr *MI,
   // the register if it's given.
   // TableGen doesn't expose a way of getting retrieving names
   // for registers.
-  /*if (MI->getOperand(OpNum).getReg() == OPEN8::R5R4) {
+  /*if (MI->getOperand(OpNum).getReg() == OPEN8::R3R2) {
     O << "Z";
   } else {
     assert(MI->getOperand(OpNum).getReg() == OPEN8::R7R6 &&
