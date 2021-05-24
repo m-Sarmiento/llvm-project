@@ -196,6 +196,11 @@ def relbrtarget_8 : Operand<OtherVT>
     let EncoderMethod = "encodeRelCondBrTarget<OPEN8::fixup_8_pcrel>";
 }
 
+def i8imm_signed : Operand<i8>
+{
+    let PrintMethod   = "printi8imm_signed";
+}
+
 // The target of a 22 or 16-bit call/jmp instruction.
 def call_target : Operand<iPTR>
 {
@@ -1014,14 +1019,14 @@ isReMaterializable = 1 in
 {
   def LDO : OPEN8OpRegOffX<0,OP_LDO,
                       (outs),
-                      (ins DREGS:$rn, i8imm:$offset),
+                      (ins DREGS:$rn, i8imm_signed:$offset),
                       "ldo\t$rn, $offset",
                       []>;  
 
   def LDOinc : OPEN8OpRegOffX<1,OP_LDO,
                       (outs),
-                      (ins DREGS:$rn, i8imm:$offset),
-                      !strconcat("lto\t$rn","++"," ,$offset"),
+                      (ins DREGS:$rn, i8imm_signed:$offset),
+                      !strconcat("ldo\t$rn","++"," ,$offset"),
                       []>;   //TODO: add to disassembler 
 
   let Constraints = "@earlyclobber $reg" in
@@ -1135,13 +1140,13 @@ let Constraints = "$ptrreg = $base_wb,@earlyclobber $base_wb" in
 
 def STO : OPEN8OpRegOffX<0, OP_STO,
                      (outs),
-                     (ins DREGS:$rn, i8imm:$offset),
+                     (ins DREGS:$rn, i8imm_signed:$offset),
                      "sto\t$rn, $offset",
                      []>; 
 
 def STOinc : OPEN8OpRegOffX<1, OP_STO,
                      (outs),
-                     (ins DREGS:$rn, i8imm:$offset),
+                     (ins DREGS:$rn, i8imm_signed:$offset),
                      !strconcat("sto\t$rn","++"," ,$offset"),
                      []>;  //TODO: add to disassembler 
 
@@ -1374,8 +1379,8 @@ def : InstAlias<"sti", (STP 3)>;
 def : InstAlias<"cli", (CLP 3)>;
 
 // Set/clear aliases for the stack  (stk) status flag (bit 4).
-def : InstAlias<"sstk", (STP 4)>;
-def : InstAlias<"cstk", (CLP 4)>;
+def : InstAlias<"ststk", (STP 4)>;
+def : InstAlias<"clstk", (CLP 4)>;
 
 // Set/clear aliases for the signed overflow (v) status flag (bit 7).
 def : InstAlias<"stv", (STP 7)>;
@@ -1680,7 +1685,7 @@ def TX0 : OPEN8OpReg<OP_TX0,
                      (outs),
                      (ins GPR8:$rn),
                      "tx0\t$rn",
-                     [(set R0,(adde i8:$rn, 0)),(implicit SREG)]>;
+                     [(set R0, i8:$rn)]>;
 
  def SBC : OPEN8OpReg<OP_SBC,
                      (outs),
@@ -1698,7 +1703,7 @@ def TX0 : OPEN8OpReg<OP_TX0,
                      (outs),
                      (ins GPR8:$rn),
                      "t0x\t$rn",
-                     [(set i8:$rn,(add R0, 0)),(implicit SREG)]>; 
+                     [(set i8:$rn,R0)]>; 
 
   def CMP : OPEN8OpReg<OP_CMP,
                      (outs),
@@ -1725,9 +1730,6 @@ def TX0 : OPEN8OpReg<OP_TX0,
                      [(set R0,(xor i8:$rn, R0)),(implicit SREG)]>; 
                      
 }
-
-
-
 
   def BTT : OPEN8OpN<OP_BTT,
                 (outs),
@@ -1774,7 +1776,7 @@ def TX0 : OPEN8OpReg<OP_TX0,
                 "gmsk",
                 []>;
 
-  def UPP : OPEN8OpReg<OP_UPP,
+  def UPP : OPEN8OpRegX<0,OP_UPP,
                      (outs),
                      (ins DREGS:$rn),
                      "upp\t$rn",

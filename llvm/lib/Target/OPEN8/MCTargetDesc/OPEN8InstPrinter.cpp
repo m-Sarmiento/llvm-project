@@ -35,46 +35,12 @@ namespace llvm {
 void OPEN8InstPrinter::printInst(const MCInst *MI, uint64_t Address,
                                StringRef Annot, const MCSubtargetInfo &STI,
                                raw_ostream &O) {
-  unsigned Opcode = MI->getOpcode();
 
-  // First handle load and store instructions with postinc or predec
-  // of the form "ld reg, X+".
-  // TODO: We should be able to rewrite this using TableGen data.
-  switch (Opcode) {
-  case OPEN8::STOinc:
-    O << "\tsto\t";
-    printOperand(MI, 0, O);
-    O << "++, ";
-    printOperand(MI, 1, O);
-    break;
-  case OPEN8::LDOinc:
-    O << "\tldo\t";
-    printOperand(MI, 0, O);
-    O << "++, ";
-    printOperand(MI, 1, O);
-    break;
-  case OPEN8::STXinc:
-    O << "\tstx\t";
-    printOperand(MI, 0, O);
-    O << "++";
-    break;
-  case OPEN8::LDXinc:
-    O << "\tldx\t";
-    printOperand(MI, 0, O);
-    O << "++";
-    break;
-  /*case OPEN8::BRGEZ:
-    O << "\tbrpl\t";
-    int64_t Imm = MI->getOperand(0).getImm();
-    O << Imm;
-    break;*/
-  default:
-    if (!printAliasInstr(MI, Address, O))
-      printInstruction(MI, Address, O);
+  if (!printAliasInstr(MI, Address, O))
+    printInstruction(MI, Address, O);
 
-    printAnnotation(O, Annot);
-    break;
-  }
+  printAnnotation(O, Annot);
+
 }
 
 const char *OPEN8InstPrinter::getPrettyRegisterName(unsigned RegNum,
@@ -132,7 +98,8 @@ void OPEN8InstPrinter::printPCRelImm(const MCInst *MI, unsigned OpNo,
   const MCOperand &Op = MI->getOperand(OpNo);
 
   if (Op.isImm()) {
-    int64_t Imm = Op.getImm();
+    int64_t Imm = (int8_t)Op.getImm();
+    
     O << '.';
 
     // Print a position sign if needed.
@@ -143,6 +110,29 @@ void OPEN8InstPrinter::printPCRelImm(const MCInst *MI, unsigned OpNo,
     O << Imm;
   } else {
     assert(Op.isExpr() && "Unknown pcrel immediate operand");
+    O << *Op.getExpr();
+  }
+}
+
+void OPEN8InstPrinter::printi8imm_signed(const MCInst *MI, unsigned OpNo,
+                                   raw_ostream &O) {
+  if (OpNo >= MI->size()) {
+    // Not all operands are correctly disassembled at the moment. This means
+    // that some machine instructions won't have all the necessary operands
+    // set.
+    // To avoid asserting, print <unknown> instead until the necessary support
+    // has been implemented.
+    O << "<unknown>";
+    return;
+  }
+
+  const MCOperand &Op = MI->getOperand(OpNo);
+
+  if (Op.isImm()) {
+    int64_t Imm = (int8_t)Op.getImm();
+    O << Imm;
+  } else {
+    assert(Op.isExpr() && "Unknown offset immediate operand");
     O << *Op.getExpr();
   }
 }
